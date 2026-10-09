@@ -67,6 +67,8 @@ ul.tree li{margin:2px 0}
 .card h2 .hl{float:right;font-size:12px;text-transform:none;letter-spacing:0;font-weight:600}
 a.hl,button.hl{color:var(--accent2);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 .qs{border-color:var(--accent2);background:#f5f8fc}
+.disc{border:1px solid var(--inc);border-left-width:4px;background:var(--incbg);color:#5a3d00;border-radius:6px;padding:9px 12px;margin-bottom:14px;font-size:13px;line-height:1.5}
+.disc b{color:#5a3d00}
 .qs ol{margin:6px 0 0;padding-left:22px}
 .qs li{margin:3px 0}
 .qs .row{margin-top:8px}
@@ -105,13 +107,14 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
   </div>
 </div></div>
 <main>
+  <div class="disc" role="note"><b>⚠ Experimental tool.</b> Before relying on a merged file, verify in PipeCAD that every design has been properly preserved according to the intended performance and coverage of the original drawings. The user assumes all risks. <button class="hl" type="button" data-help="disclaimer">Read the disclaimer</button></div>
   <section class="card qs" id="qsCard">
     <h2>Quick Start</h2>
     <ol>
       <li><b>Add</b> two or more PipeCAD <code>.pl</code> files below. They stay on this device and nothing is uploaded.</li>
       <li><b>Order</b> them. The first file's project details, units and pipe type are used for the merged project.</li>
       <li><b>Review</b> the result. Floors or detectors whose names clash with an earlier file are renamed, and you can edit those names.</li>
-      <li><b>Download</b> the merged <code>.pl</code> and open it in PipeCAD.</li>
+      <li><b>Download</b> the merged <code>.pl</code>, open it in PipeCAD and <b>verify</b> every design against the original drawings.</li>
     </ol>
     <div class="row"><button class="pbtn" type="button" id="qsHide">Hide Quick Start</button> <button class="hl" type="button" data-help="">Open Help</button></div>
   </section>
@@ -142,7 +145,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <input type="text" id="outName" spellcheck="false">
       <button class="pbtn pri" id="dl" type="button">Download merged .pl</button>
     </div>
-    <p class="note">Open the merged file in PipeCAD before relying on it. It also imports into the MASD Field Report with <b>Import PipeCAD (.pl)</b>.</p>
+    <p class="note"><b>Experimental tool:</b> open the merged file in PipeCAD and verify that every design is preserved as intended before relying on it. The user assumes all risks. It also imports into the MASD Field Report with <b>Import PipeCAD (.pl)</b>.</p>
   </section>
 </main>
 
@@ -152,14 +155,14 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
     <nav class="helpNav">
       <a href="#help-quick-start">Quick Start</a><a href="#help-how">How the merge works</a><a href="#help-names">Naming rules</a>
       <a href="#help-settings">Project settings</a><a href="#help-messages">Messages</a><a href="#help-faq">FAQs</a>
-      <a href="#help-install">Install &amp; privacy</a><a href="#help-revisions">Revision log</a>
+      <a href="#help-install">Install &amp; privacy</a><a href="#help-disclaimer">Disclaimer</a><a href="#help-revisions">Revision log</a>
     </nav>
     <div class="helpBody">
       <h3 id="help-quick-start">Quick Start</h3>
       <div class="hstep"><span class="hn">1</span><div><div class="ht">Add files</div><p>Click <b>Choose .pl files</b> or drop PipeCAD project files on the box. You can add more at any time. Each file shows its project, units, PipeCAD version, floors and detectors.</p></div></div>
       <div class="hstep"><span class="hn">2</span><div><div class="ht">Order them</div><p>Use ↑ and ↓ to set the order, and × to remove a file. The file marked <b>header</b> supplies the project-wide settings. Floors from the other files follow in list order.</p></div></div>
       <div class="hstep"><span class="hn">3</span><div><div class="ht">Review</div><p>The summary shows the merged floors and detectors. Any name that clashed with an earlier file is listed under <b>Renamed</b>, and you can type a different name there. Read any yellow notes before you download.</p></div></div>
-      <div class="hstep"><span class="hn">4</span><div><div class="ht">Download and check</div><p>Set the file name and click <b>Download merged .pl</b>. Open it in PipeCAD and check the floors, detectors and results. The original files are never changed.</p></div></div>
+      <div class="hstep"><span class="hn">4</span><div><div class="ht">Download and verify</div><p>Set the file name and click <b>Download merged .pl</b>. Open it in PipeCAD and verify that every floor, detector, pipe network and result matches the original drawings in performance and coverage. This is an experimental tool, and the user assumes all risks. The original files are never changed.</p></div></div>
 
       <h3 id="help-how">How the merge works</h3>
       <ul>
@@ -216,8 +219,11 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <h3 id="help-install">Install and privacy</h3>
       <p>This tool runs entirely in your browser. Files are read on this device and never uploaded. After the first visit it works offline. To install it as an app, use your browser's <b>Install</b> option (Chrome or Edge: the install icon in the address bar; Safari on iPhone or iPad: Share → Add to Home Screen). A Windows <code>.exe</code> version is planned.</p>
 
+      <h3 id="help-disclaimer">Disclaimer</h3>
+      <p><b>PipeCAD Project Merge is an experimental tool</b>, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD. Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings: floors, detectors, pipe networks, sampling holes, alarm settings and calculated results. <b>The user assumes all risks</b> arising from the use of this tool and of any file it produces. The original files are never changed. Keep them as the reference.</p>
+
       <h3 id="help-revisions">Revision log</h3>
-      <dl class="faq"><dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, offline use and app install.</dd></dl>
+      <dl class="faq"><dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, the experimental-tool disclaimer, offline use and app install.</dd></dl>
     </div>
   </div>
 </div>

@@ -6,6 +6,10 @@ Combines several PipeCAD `.pl` project files into one `.pl` that opens in PipeCA
 For example, separate files for each floor or building can be merged into one project.
 It is an installable, offline-capable web app (PWA). Everything runs in the browser and no file is uploaded.
 
+> **⚠ Disclaimer: experimental tool.** PipeCAD Project Merge is experimental software, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD.
+> Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings. That covers floors, detectors, pipe networks, sampling holes, alarm settings and calculated results.
+> **The user assumes all risks** arising from the use of this tool and of any file it produces. The original files are never changed; keep them as the reference.
+
 Live: https://thebmgatkgs.github.io/PipeCAD-Project-Merge/ (GitHub Pages from `main`, root).
 A Windows `.exe` (Electron) build is planned.
 
@@ -13,7 +17,7 @@ A Windows `.exe` (Electron) build is planned.
 1. Open the app and click **Choose .pl files**, or drop PipeCAD project files on the box. Add two or more.
 2. **Order** the files with ↑ and ↓. The first file (marked **header**) supplies the project details, units and pipe type.
 3. **Review** the merged floors and detectors. Any floor or detector whose name clashes with an earlier file is listed under **Renamed**, and you can type a different name there.
-4. Set the file name, click **Download merged .pl**, and open the file in PipeCAD.
+4. Set the file name, click **Download merged .pl**, open the file in PipeCAD, and **verify** every design against the original drawings (see the disclaimer above).
 
 The original files are never changed.
 
@@ -26,6 +30,7 @@ The original files are never changed.
 - Messages (what a red block or a yellow warning means)
 - FAQs
 - Install & privacy
+- Disclaimer
 - Revision log
 
 Each step on the page has a link to the matching Help section. The Quick Start panel can be hidden, and the **Quick Start** button brings it back.
@@ -81,4 +86,4 @@ Validated on six real PipeCAD 3.5.0.132 / 3.6.2.139 projects (49 detectors, 17 f
 
 ## Versions
 `vMM.mm.rrr`. Releases are tagged by hand in GitHub.
-- **00.00.001** (2026-10-09): first release. Merge, rename review and edit, pipe/unit checks, PWA install and offline use.
+- **00.00.001** (2026-10-09): first release. Merge, rename review and edit, pipe/unit checks, Quick Start and Help, the experimental-tool disclaimer, PWA install and offline use.
