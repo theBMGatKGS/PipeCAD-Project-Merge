@@ -9,11 +9,33 @@ It is an installable, offline-capable web app (PWA). Everything runs in the brow
 Live: https://thebmgatkgs.github.io/PipeCAD-Project-Merge/ (GitHub Pages from `main`, root).
 A Windows `.exe` (Electron) build is planned.
 
-## Use
-1. Pick or drop two or more `.pl` files.
-2. Order them. The **first** file supplies the project header: project details, units, pipe type, default options and snap grid.
-3. Review the floors and detectors. Edit any renamed floor or detector if you want a different name.
-4. Click **Download merged .pl** and open the file in PipeCAD.
+## Quick Start
+1. Open the app and click **Choose .pl files**, or drop PipeCAD project files on the box. Add two or more.
+2. **Order** the files with ↑ and ↓. The first file (marked **header**) supplies the project details, units and pipe type.
+3. **Review** the merged floors and detectors. Any floor or detector whose name clashes with an earlier file is listed under **Renamed**, and you can type a different name there.
+4. Set the file name, click **Download merged .pl**, and open the file in PipeCAD.
+
+The original files are never changed.
+
+## Help in the app
+**Help** in the toolbar opens a guide with these sections:
+- Quick Start
+- How the merge works
+- Naming rules
+- Project settings (which file goes first)
+- Messages (what a red block or a yellow warning means)
+- FAQs
+- Install & privacy
+- Revision log
+
+Each step on the page has a link to the matching Help section. The Quick Start panel can be hidden, and the **Quick Start** button brings it back.
+
+## Install and privacy
+- The tool runs entirely in the browser. Files are read on the device and never uploaded.
+- After the first visit it works offline.
+- To install it as an app:
+  - Chrome or Edge: click the install icon in the address bar.
+  - iPhone or iPad: Share → Add to Home Screen.
 
 ## What the merge changes and what it keeps
 - **The design is copied unchanged.** That covers every floor, detector, pipe run, sampling hole, end cap, T-piece, outline, label and saved PipeCAD result.
@@ -30,6 +52,23 @@ A Windows `.exe` (Electron) build is planned.
 - **Flagged:** a different stick length, OD or part number. PipeCAD keeps one pipe type per project, so socket counts and part numbers follow the first file's pipe if PipeCAD recalculates.
 - **Version.** The merged file is marked with the newest PipeCAD version among the inputs.
 - **Output format** matches PipeCAD's own: XML declaration, indentation, `<Tag />` empty elements and CRLF line endings.
+
+## Messages
+- **Red (merge blocked):**
+  - Different units. Set all the projects to the same units in PipeCAD and save again.
+  - Different pipe bore or material. Airflow depends on the bore, so these projects can't share one pipe type.
+  - A typed name that's already used. Choose a different name.
+- **Yellow (check before you download):**
+  - Different pipe stick length, OD or part number. Airflow is unchanged, but socket counts and part numbers follow the first file's pipe if PipeCAD recalculates.
+  - Different default detector type. Each detector keeps its own type.
+- **Notes:** project details that were not carried over, ID shifts and the version stamp.
+
+## FAQs
+- **Will the design or the calculated performance change?** No. Every value in every floor, detector, pipe, hole and saved result is copied exactly. Only internal IDs and clashing names change. `tools/verify_merge.py` proves this for any merge.
+- **Can I merge two revisions of the same project?** Yes. The later file's matching floors and detectors are renamed, so both versions sit side by side.
+- **Can I merge a merged file again?** Yes. It's an ordinary PipeCAD project.
+- **Which PipeCAD versions?** Files from 3.5.0.132 and 3.6.2.139 have been merged and opened in PipeCAD.
+- **MASD Field Report?** A merged file imports with **Import PipeCAD (.pl)**, one sheet per detector.
 
 ## Checking a merge
 ```
