@@ -10,8 +10,8 @@ It is an installable, offline-capable web app (PWA). Everything runs in the brow
 > Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings. That covers floors, detectors, pipe networks, sampling holes, alarm settings and calculated results.
 > **The user assumes all risks** arising from the use of this tool and of any file it produces. The original files are never changed; keep them as the reference.
 
-Live: https://thebmgatkgs.github.io/PipeCAD-Project-Merge/ (GitHub Pages from `main`, root).
-A Windows `.exe` (Electron) build is planned.
+- **Web app:** https://thebmgatkgs.github.io/PipeCAD-Project-Merge/ (GitHub Pages from `main`, root).
+- **Windows installer:** download `PipeCAD-Project-Merge-Setup-<version>.exe` from the [latest release](https://github.com/theBMGatKGS/PipeCAD-Project-Merge/releases/latest).
 
 ## Quick Start
 1. Open the app and click **Choose .pl files**, or drop PipeCAD project files on the box. Add two or more.
@@ -57,6 +57,20 @@ Each step on the page has a link to the matching Help section. The Quick Start p
 - **Flagged:** a different stick length, OD or part number. PipeCAD keeps one pipe type per project, so socket counts and part numbers follow the first file's pipe if PipeCAD recalculates.
 - **Version.** The merged file is marked with the newest PipeCAD version among the inputs.
 - **Output format** matches PipeCAD's own: XML declaration, indentation, `<Tag />` empty elements and CRLF line endings.
+
+## Windows installer (Electron)
+`electron/` wraps the same `index.html` in a desktop app. The **Windows installer** workflow (`.github/workflows/windows-installer.yml`) builds an NSIS installer on GitHub's Windows runners:
+- **On every push to `main` and every PR:** the `.exe` is available under the run's *Artifacts*.
+- **When a GitHub release is published:** the `.exe` is attached to the release automatically.
+- **Version:** the installer takes its version from `Version MM.mm.rrr` in `index.html`.
+
+To build locally on Windows:
+```
+cd electron
+npm ci
+npm run dist
+```
+The output is `dist/PipeCAD-Project-Merge-Setup-<version>.exe`.
 
 ## Messages
 - **Red (merge blocked):**
