@@ -1,0 +1,2 @@
+# PipeCAD project files are client data: never commit them.
+*.pl
