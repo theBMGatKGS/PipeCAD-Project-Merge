@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PipeCAD Project Merge</title>
-<meta name="description" content="Combine several PipeCAD 3.6 project files (.pl) into one, in the browser.">
+<meta name="description" content="Combine several PipeCAD 3.5 and 3.6 project files (.pl) into one, in the browser, and check that every design is unchanged.">
 <meta name="theme-color" content="#1f3a5f">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!--
   PipeCAD Project Merge — combines PipeCAD .pl project files. Installable, offline-capable web app (PWA).
-  Version 00.00.001 (2026-10-09). Everything runs in this browser; no file is uploaded anywhere.
+  Version 00.01.000 (2026-10-12). Everything runs in this browser; no file is uploaded anywhere.
 -->
 <style>
 :root{
@@ -95,12 +95,60 @@ dl.faq{margin:0}
 dl.faq dt{font-weight:700;font-size:13.5px;color:var(--ink);margin:12px 0 3px}
 dl.faq dd{margin:0}
 code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);border-radius:4px;padding:0 4px;font-size:12.5px}
+/* naming conventions */
+.opt{font-weight:600;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.conv{border:1px solid var(--line2);border-radius:8px;padding:8px 10px;margin-top:10px;background:var(--soft)}
+.conv summary{cursor:pointer;font-weight:700}
+.conv h3{font-size:13px;margin:0 0 4px;color:var(--accent)}
+.crow{display:grid;grid-template-columns:110px 170px 1fr 1fr;gap:6px 8px;align-items:center;margin-top:6px}
+.crow > b{font-size:13px}
+.crow select,.crow input{border:1px solid var(--line);border-radius:5px;padding:5px 7px;min-width:0;background:#fff;width:100%}
+.crow .tok{grid-column:1/-1;font-size:12px;color:var(--muted);margin:-2px 0 2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;vertical-align:middle}
+.seg button{border:0;background:#fff;padding:4px 10px;cursor:pointer;font-weight:600;font-size:12.5px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:#fff}
+.dup{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;border-left:4px solid var(--inc);background:var(--incbg);padding:7px 10px;border-radius:4px;margin:6px 0;font-size:13px}
+@media (max-width:640px){.crow{grid-template-columns:1fr 1fr}.crow > b{grid-column:1/-1}}
+.renList summary{cursor:pointer;font-size:13px;color:var(--muted);margin:10px 0 4px}
+/* design check and report */
+.chk{border-radius:6px;padding:10px 12px;margin:4px 0 8px;font-size:13.5px}
+.chk.pass{background:var(--passbg);color:var(--pass);border-left:4px solid var(--pass)}
+.chk.fail{background:var(--failbg);color:var(--fail);border-left:4px solid var(--fail)}
+.chk b{font-size:14px}
+.chk ul{margin:6px 0 0;padding-left:20px}
+.repBox{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#fff;max-height:70vh;overflow:auto}
+#printArea{display:none}
+@media print{
+  body{background:#fff}
+  body > *:not(#printArea){display:none !important}
+  #printArea{display:block}
+}
+.rep{-webkit-print-color-adjust:exact;print-color-adjust:exact;font:12.5px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#17202b}
+.rep h1{font-size:18px;margin:0 0 2px;color:#1f3a5f}
+.rep h2{font-size:13px;margin:18px 0 6px;color:#1f3a5f;text-transform:uppercase;letter-spacing:.04em}
+.rep .meta{color:#566172;margin:0 0 10px}
+.rep table{width:100%;border-collapse:collapse;margin:4px 0 8px}
+.rep th,.rep td{border:1px solid #d5dbe3;padding:4px 6px;text-align:left;vertical-align:top}
+.rep th{background:#f1f4f8;font-size:11.5px;color:#566172}
+.rep td.n{text-align:right;font-variant-numeric:tabular-nums}
+.rep tr.fl td{background:#f6f8fb;font-weight:600}
+.rep tr.file td{background:#1f3a5f;color:#fff;font-weight:700}
+.rep .h{font-family:Consolas,"SFMono-Regular",Menlo,monospace;font-size:11px;word-break:break-all}
+.rep .ok{color:#1b7a3a;font-weight:700}
+.rep .bad{color:#b3261e;font-weight:700}
+.rep .ren{color:#8a5a00;font-weight:600}
+.rep .banner{padding:8px 10px;border-radius:5px;font-weight:700;margin:6px 0 10px}
+.rep .banner.ok{background:#e2f3e7;border:1px solid #1b7a3a}
+.rep .banner.bad{background:#fbe4e1;border:1px solid #b3261e}
+.rep .small{font-size:11.5px;color:#566172}
+.rep tr{page-break-inside:avoid}
 @media (max-width:640px){.bar{position:static}.helpOverlay{padding:12px 8px}.helpCard{max-height:calc(100vh - 24px)}.helpBody{padding:14px 16px 24px}}
 </style>
 </head>
 <body>
 <div class="bar"><div class="bar-in">
-  <h1>PipeCAD Project Merge <small>Combine several PipeCAD project files into one, unchanged · v00.00.001 · 2026-10-09</small></h1>
+  <h1>PipeCAD Project Merge <small>Combine several PipeCAD project files into one, unchanged · v00.01.000 · 2026-10-12</small></h1>
   <div class="btns">
     <button class="btn" type="button" data-help="quick-start">Quick Start</button>
     <button class="btn" type="button" data-help="">Help</button>
@@ -113,8 +161,9 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
     <ol>
       <li><b>Add</b> two or more PipeCAD <code>.pl</code> files below. They stay on this device and nothing is uploaded.</li>
       <li><b>Order</b> them. The first file's project details, units and pipe type are used for the merged project.</li>
-      <li><b>Review</b> the result. Floors or detectors whose names clash with an earlier file are renamed, and you can edit those names.</li>
-      <li><b>Download</b> the merged <code>.pl</code>, open it in PipeCAD and <b>verify</b> every design against the original drawings.</li>
+      <li><b>Names:</b> a floor name already used by an earlier file gets a copy number, such as <code>Area A (2)</code>. Decide on any repeated names, and set a naming convention if you want one.</li>
+      <li><b>Download</b> the merged <code>.pl</code>, then read the <b>design check</b> and print or save its report.</li>
+      <li><b>Open</b> the merged file in PipeCAD and <b>verify</b> every design against the original drawings.</li>
     </ol>
     <div class="row"><button class="pbtn" type="button" id="qsHide">Hide Quick Start</button> <button class="hl" type="button" data-help="">Open Help</button></div>
   </section>
@@ -137,8 +186,19 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
     </table></div>
   </section>
 
+  <section class="card" id="namesCard" hidden>
+    <h2>3 · Names <button class="hl" type="button" data-help="names">Naming rules</button></h2>
+    <p class="note" style="margin-top:0">Designs keep their own names unless something must change. A floor whose name is already used by an earlier file gets a copy number, such as <code>Area A (2)</code>. Detectors only need unique names on their own floor, and pipe runs stay locked. To rename on purpose, set a naming convention.</p>
+    <div class="row" role="radiogroup" aria-label="Naming convention scope">
+      <label class="opt"><input type="radio" name="convScope" value="project" checked> One convention for the whole project</label>
+      <label class="opt"><input type="radio" name="convScope" value="file"> A convention for each file</label>
+    </div>
+    <div id="convEditor"></div>
+    <div id="namesOut"></div>
+  </section>
+
   <section class="card" id="resultCard" hidden>
-    <h2>3 · Review and download <button class="hl" type="button" data-help="names">Naming rules</button></h2>
+    <h2>4 · Review and download <button class="hl" type="button" data-help="quick-start">Help</button></h2>
     <div id="result"></div>
     <div class="row">
       <label for="outName">File name</label>
@@ -147,13 +207,27 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
     </div>
     <p class="note"><b>Experimental tool:</b> open the merged file in PipeCAD and verify that every design is preserved as intended before relying on it. The user assumes all risks. It also imports into the MASD Field Report with <b>Import PipeCAD (.pl)</b>.</p>
   </section>
+
+  <section class="card" id="checkCard" hidden>
+    <h2>5 · Design check <button class="hl" type="button" data-help="check">What is checked?</button></h2>
+    <div id="checkMerge"></div>
+  </section>
+
+  <section class="card" id="verifyCard" hidden>
+    <h2>Check an existing merged file <button class="hl" type="button" data-help="check">How it works</button></h2>
+    <p class="note" style="margin-top:0">Already have a merged <code>.pl</code>? Keep its original files in step 1, then choose the merged file here. Every floor and detector is compared with the originals, and you get the same report.</p>
+    <div class="row"><button class="pbtn" type="button" id="vPick">Choose merged .pl</button> <span class="note" id="vName" style="margin:0"></span></div>
+    <input type="file" id="vFile" accept=".pl,.xml" hidden>
+    <div id="checkFile"></div>
+  </section>
 </main>
+<div id="printArea"></div>
 
 <div class="helpOverlay" id="helpOverlay">
   <div class="helpCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="helpHead"><h2 id="helpTitle">Help · PipeCAD Project Merge</h2><button class="helpClose" id="helpClose" type="button" aria-label="Close help">&times;</button></div>
     <nav class="helpNav">
-      <a href="#help-quick-start">Quick Start</a><a href="#help-how">How the merge works</a><a href="#help-names">Naming rules</a>
+      <a href="#help-quick-start">Quick Start</a><a href="#help-how">How the merge works</a><a href="#help-names">Naming rules</a><a href="#help-check">Design check &amp; report</a>
       <a href="#help-settings">Project settings</a><a href="#help-messages">Messages</a><a href="#help-faq">FAQs</a>
       <a href="#help-install">Install &amp; privacy</a><a href="#help-disclaimer">Disclaimer</a><a href="#help-revisions">Revision log</a>
     </nav>
@@ -161,8 +235,10 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <h3 id="help-quick-start">Quick Start</h3>
       <div class="hstep"><span class="hn">1</span><div><div class="ht">Add files</div><p>Click <b>Choose .pl files</b> or drop PipeCAD project files on the box. You can add more at any time. Each file shows its project, units, PipeCAD version, floors and detectors.</p></div></div>
       <div class="hstep"><span class="hn">2</span><div><div class="ht">Order them</div><p>Use ↑ and ↓ to set the order, and × to remove a file. The file marked <b>header</b> supplies the project-wide settings. Floors from the other files follow in list order.</p></div></div>
-      <div class="hstep"><span class="hn">3</span><div><div class="ht">Review</div><p>The summary shows the merged floors and detectors. Any name that clashed with an earlier file is listed under <b>Renamed</b>, and you can type a different name there. Read any yellow notes before you download.</p></div></div>
-      <div class="hstep"><span class="hn">4</span><div><div class="ht">Download and verify</div><p>Set the file name and click <b>Download merged .pl</b>. Open it in PipeCAD and verify that every floor, detector, pipe network and result matches the original drawings in performance and coverage. This is an experimental tool, and the user assumes all risks. The original files are never changed.</p></div></div>
+      <div class="hstep"><span class="hn">3</span><div><div class="ht">Names</div><p>A floor whose name is already used by an earlier file gets a copy number (<code>Area A (2)</code>). Detectors and pipe runs keep their names. If a floor holds several detectors with the same name, you're asked to <b>leave</b> them or <b>number</b> them. To rename on purpose, set a <b>naming convention</b> (prefix and suffix, or find and replace) for the whole project or for each file. Every change is listed, and you can type a different name.</p></div></div>
+      <div class="hstep"><span class="hn">4</span><div><div class="ht">Review and download</div><p>The summary shows the merged floors and detectors. Read any yellow notes, set the file name and click <b>Download merged .pl</b>.</p></div></div>
+      <div class="hstep"><span class="hn">5</span><div><div class="ht">Design check and report</div><p>The tool reads the merged file back and compares every floor and detector with the originals. <b>Print report</b> (or save it as PDF), <b>Save report (.html)</b> or <b>Save table (.csv)</b> to keep a record.</p></div></div>
+      <div class="hstep"><span class="hn">6</span><div><div class="ht">Verify in PipeCAD</div><p>Open the merged file in PipeCAD and verify that every floor, detector, pipe network and result matches the original drawings in performance and coverage. This is an experimental tool, and the user assumes all risks. The original files are never changed.</p></div></div>
 
       <h3 id="help-how">How the merge works</h3>
       <ul>
@@ -172,13 +248,28 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       </ul>
 
       <h3 id="help-names">Naming rules</h3>
-      <p>Only names that clash with a floor or detector in an <b>earlier</b> file change. Duplicate names inside one file are kept as the designer made them.</p>
+      <p>Names change only when they must, or when you ask. Everything else about a design stays exactly as it was.</p>
       <ul>
-        <li><b>Detectors</b> continue their own numbering at the same width: <code>MASD 01 → MASD 05</code>, <code>MASD 1-2 → MASD 1-7</code>. A name without a number gets one: <code>Detector → Detector 2</code>.</li>
-        <li><b>Floors</b> keep their description. A trailing letter moves on (<code>Area A → Area B</code>). A simple word-and-number name counts up (<code>Floor 1 → Floor 2</code>). Anything else gets a copy number, so <code>Pipes 1 &amp; 4</code> becomes <code>Pipes 1 &amp; 4 (2)</code>.</li>
-        <li><b>Pipe names</b> belong to their detector, so they never clash and never change.</li>
-        <li>You can type your own name in the <b>Renamed</b> table. It must not match any other floor or detector.</li>
+        <li><b>Floors</b> must be unique in the project. A floor whose name is already used by an <b>earlier</b> file gets the next copy number: <code>Area A → Area A (2)</code>, then <code>(3)</code>, and <code>Area A (2)</code> becomes <code>Area A (3)</code>. Floors with the same name in one file are their designer's own and are flagged for your decision.</li>
+        <li><b>Detectors</b> only need unique names on their own floor. Because merged floors are kept apart, detectors are never renamed automatically.</li>
+        <li><b>Repeated names.</b> When one floor holds several detectors with the same name (for example four called <code>Detector</code>), the tool asks you to <b>Leave as is</b> or <b>Number them</b>. Numbering keeps the first and continues the pattern for the rest: <code>Detector, Detector 2, Detector 3</code>, or <code>MASD 01 → MASD 02</code>. Use <b>All</b> to choose for every group at once.</li>
+        <li><b>Pipe runs</b> are locked unless you set a pipe naming convention. Exhaust runs always keep <code>Exhaust</code> first: a prefix goes after it, so <code>Exhaust Pipe</code> with prefix <code>{detector} </code> becomes <code>Exhaust MASD 01 Pipe</code>.</li>
+        <li><b>Naming conventions.</b> Choose <b>One convention for the whole project</b> or <b>A convention for each file</b>. For floors, detectors and pipe runs, pick <b>Prefix / suffix</b> (text added before and after each name) or <b>Find &amp; replace</b> (every occurrence of some text replaced, case-sensitive). Prefix, suffix and replacement can use <code>{file}</code> (the file name without <code>.pl</code>), <code>{floor}</code> and <code>{detector}</code>. <b>Match pipe names to detector</b> sets the pipe prefix to <code>{detector} </code>. A convention is applied first; a floor that then clashes with an earlier file still gets a copy number.</li>
+        <li><b>Typing a name.</b> Every changed floor and detector is listed with the reason, and you can type a different name. A floor name must not match another floor; a detector name must not match another detector on the same floor.</li>
+        <li><b>Length limits.</b> PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. When a copy number or numbering would pass the limit, the name is cut and ends in <code>...(n)</code>, n being the copy number: <code>Boyers Roadway 2 x Pipes/MASD → Boyers Roadway 2 x Pipes/M...(2)</code>. A prefix, suffix, replacement or typed name that is too long is refused with a message instead. Original names are never shortened.</li>
       </ul>
+
+      <h3 id="help-check">Design check and difference report</h3>
+      <p>After every merge the tool reads the merged file back and compares it with the original files, so you can see that each design came through unchanged. The result appears under <b>5 · Design check</b>.</p>
+      <ul>
+        <li><b>Fingerprints.</b> Each floor and detector gets a SHA-256 fingerprint of its whole design: pipe runs, pipes, coordinates, sampling holes, end caps, T-pieces, detector settings, outlines, labels and the saved PipeCAD results that belong to it. Only what a merge is allowed to change is left out: floor, detector and pipe-run names, and PipeCAD's internal ID and project-tree numbers. If the original and merged fingerprints match, the design is identical.</li>
+        <li><b>ID numbers.</b> The check confirms that each file's internal IDs moved by one constant amount (the <b>ID shift</b>), so every saved result still points at the same pipe or hole.</li>
+        <li><b>Nothing extra or missing.</b> Every floor and detector must be found, the merged file must not hold anything that isn't in a source file, and its project settings must come from one of the files.</li>
+        <li><b>Results.</b> <span style="color:var(--pass);font-weight:700">✓ Identical</span> means the design matches at its expected place; <b>Identical (moved)</b> means it matches but sits somewhere else in the file; <span style="color:var(--fail);font-weight:700">✗ Changed</span> lists the first values that differ; <span style="color:var(--fail);font-weight:700">✗ Missing</span> means it was not found.</li>
+        <li><b>The report</b> lists every file with its SHA-256 checksum and ID shift, then every floor and detector with its original and merged name (marked automatic or typed by you), contents, fingerprints and result. Use <b>Show report</b> to read it, <b>Print report</b> to print it or save it as PDF, or <b>Save report (.html)</b> to keep a copy that opens in any browser.</li>
+        <li><b>Check an existing merged file.</b> Keep the original files in step 1, then use <b>Choose merged .pl</b> at the bottom of the page. The order of the originals doesn't matter.</li>
+      </ul>
+      <p>The check reads the file's contents. It doesn't replace opening the merged file in PipeCAD and verifying the designs there.</p>
 
       <h3 id="help-settings">Project settings and which file goes first</h3>
       <p>A PipeCAD project has one set of project-wide settings. The merged file takes them from the <b>first</b> file in the list:</p>
@@ -193,19 +284,21 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <h3 id="help-messages">Messages</h3>
       <dl class="faq">
         <dt>Red: the merge is blocked</dt>
-        <dd><b>Different units.</b> Set every project to the same units in PipeCAD and save again.<br><b>Different pipe bore or material.</b> The airflow results depend on the bore, so these projects can't share one pipe type. Keep them as separate projects.<br><b>A name is already used.</b> A name you typed in the Renamed table matches another floor or detector. Choose a different one.</dd>
+        <dd><b>Different units.</b> Set every project to the same units in PipeCAD and save again.<br><b>Different pipe bore or material.</b> The airflow results depend on the bore, so these projects can't share one pipe type. Keep them as separate projects.<br><b>A name is already used.</b> A name you typed matches another floor, or another detector on the same floor. Choose a different one.<br><b>A name is too long.</b> A naming convention or a typed name is over the limit for that place. Shorten the prefix, suffix or replacement.<br><b>Two pipe runs would get the same name.</b> The pipe naming convention would make two different runs on one detector identical. Change the convention.</dd>
         <dt>Yellow: check before you download</dt>
-        <dd><b>Different stick length, OD or part number.</b> Airflow is unchanged, but if PipeCAD recalculates, socket counts and part numbers follow the first file's pipe. Move a file to the top to keep its pipe type.<br><b>Different detector type.</b> Each detector keeps its own type, but the project default changes.</dd>
+        <dd><b>Repeated names need your decision.</b> Choose <b>Leave as is</b> or <b>Number them</b> for each group in step 3. Leaving them is safe for PipeCAD, but repeated names are harder to tell apart in reports.<br><b>Different stick length, OD or part number.</b> Airflow is unchanged, but if PipeCAD recalculates, socket counts and part numbers follow the first file's pipe. Move a file to the top to keep its pipe type.<br><b>Different detector type.</b> Each detector keeps its own type, but the project default changes.</dd>
         <dt>Notes</dt>
         <dd>These cover project details that were not carried over, ID shifts and the version stamp. They are for information only.</dd>
+        <dt>Design check</dt>
+        <dd><b>Green: Design check passed.</b> Every floor and detector is identical to the original apart from the listed name changes.<br><b>Red: Design check failed.</b> Something is changed, missing or extra. Don't use the merged file; the report shows what differs.</dd>
       </dl>
 
       <h3 id="help-faq">FAQs</h3>
       <dl class="faq">
         <dt>Will the design or the calculated performance change?</dt>
-        <dd>No. Every value in every floor, detector, pipe, hole and saved result is copied exactly. Only internal ID numbers and clashing names change. Running <code>tools/verify_merge.py</code> from the repository on a merge checks this field by field.</dd>
+        <dd>No. Every value in every floor, detector, pipe, hole and saved result is copied exactly. Only internal ID numbers and the names listed in step 3 change. The <b>Design check</b> after each merge confirms this design by design, and the difference report can be printed or saved. <code>tools/verify_merge.py</code> in the repository runs a similar check outside the app.</dd>
         <dt>Can I merge two revisions of the same project?</dt>
-        <dd>Yes. Matching floors and detectors from the later file are renamed, so you can compare them side by side in PipeCAD.</dd>
+        <dd>Yes. The later file's floors get copy numbers, such as <code>Area A (2)</code>, so you can compare the revisions side by side in PipeCAD. To mark them more clearly, give the later file a floor suffix such as <code> Rev B</code> under <b>A convention for each file</b>.</dd>
         <dt>Can I merge a merged file again?</dt>
         <dd>Yes. A merged file is an ordinary PipeCAD project, so you can add it to another merge.</dd>
         <dt>Which PipeCAD versions work?</dt>
@@ -213,17 +306,22 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
         <dt>Does it change my original files?</dt>
         <dd>No. It only reads them and downloads a new file.</dd>
         <dt>Can I use the merged file in the MASD Field Report?</dt>
-        <dd>Yes. Use <b>Import PipeCAD (.pl)</b> there. Each detector becomes one sheet, and the renamed detectors keep the sheets apart.</dd>
+        <dd>Yes. Use <b>Import PipeCAD (.pl)</b> there. Each detector becomes one sheet. Detectors on different floors can share a name, so to tell the sheets apart, add a detector prefix such as <code>{floor} </code> or a per-file prefix before merging.</dd>
+        <dt>Does the design check prove the file works in PipeCAD?</dt>
+        <dd>It proves the file's design data is identical to the originals, apart from names and internal numbers. It can't run PipeCAD, so still open the merged file in PipeCAD and check it there.</dd>
+        <dt>Can I check a merged file later?</dt>
+        <dd>Yes. Add the original files in step 1, then use <b>Choose merged .pl</b> under <b>Check an existing merged file</b>. The originals can be in any order.</dd>
       </dl>
 
       <h3 id="help-install">Install and privacy</h3>
-      <p>This tool runs entirely in your browser. Files are read on this device and never uploaded. After the first visit it works offline. To install it as an app, use your browser's <b>Install</b> option (Chrome or Edge: the install icon in the address bar; Safari on iPhone or iPad: Share → Add to Home Screen). A Windows <code>.exe</code> installer is also available from the GitHub release page.</p>
+      <p>This tool runs entirely in your browser. Files are read on this device and never uploaded. After the first visit it works offline. To install it as an app, use your browser's <b>Install</b> option (Chrome or Edge: the install icon in the address bar; Safari on iPhone or iPad: Share → Add to Home Screen). A Windows installer is also available: download <code>PipeCAD-Project-Merge-Setup</code> <code>.exe</code> from the <a href="https://github.com/theBMGatKGS/PipeCAD-Project-Merge/releases/latest" target="_blank" rel="noopener">latest release</a>. It isn't code-signed yet, so Windows may show a SmartScreen warning: choose <b>More info</b>, then <b>Run anyway</b>.</p>
 
       <h3 id="help-disclaimer">Disclaimer</h3>
       <p><b>PipeCAD Project Merge is an experimental tool</b>, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD. Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings: floors, detectors, pipe networks, sampling holes, alarm settings and calculated results. <b>The user assumes all risks</b> arising from the use of this tool and of any file it produces. The original files are never changed. Keep them as the reference.</p>
 
       <h3 id="help-revisions">Revision log</h3>
-      <dl class="faq"><dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, the experimental-tool disclaimer, offline use and app install.</dd></dl>
+      <dl class="faq"><dt>00.01.000 · 2026-10-12</dt><dd>Design check: every floor and detector is fingerprinted (SHA-256) and compared with the originals after each merge, with ID shifts and file checksums. Difference report to show, print or save as PDF, HTML or CSV, and a check for existing merged files. Naming: floors that are already used get copy numbers (<code>Area A (2)</code>); detectors only need unique names on their floor; repeated names are flagged to leave or number; naming conventions (prefix/suffix or find &amp; replace) for floors, detectors and pipe runs, for the whole project or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit. Help and Quick Start updated.</dd>
+      <dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, the experimental-tool disclaimer, offline use and app install.</dd></dl>
     </div>
   </div>
 </div>
@@ -252,22 +350,49 @@ const unitName = u => u==='1' ? 'Imperial (ft)' : u==='' ? '—' : 'Metric (unit
 const verCmp = (a,b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
   for(let i=0;i<Math.max(x.length,y.length);i++){ const d = (x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
 
-/* Next free name in the same pattern as the original.
-   Detectors are numbered labels: the trailing number continues at the same width
-     ("MASD 01" → "MASD 05", "MASD 1-2" → "MASD 1-7"); a name with no number gets one ("Detector" → "Detector 2").
-   Floors are descriptive, so a number inside the description is never changed:
-     "Area A" → "Area B"; "Floor 1" / "Level 03" (words + number only) → "Floor 2" / "Level 04";
-     anything else gets a copy number ("Pipes 1 & 4" → "Pipes 1 & 4 (2)", "Data Hall" → "Data Hall (2)"). */
-function nextName(name, used, what){
-  const free = gen => { for(let i = 0; ; i++){ const c = gen(i); if(c==null) return null; if(!used.has(c)) return c; } };
-  let m;
-  if(what==='Floor'){
-    if((m = name.match(/^(.*\s)([A-Y])$/))){ const r = free(i=>{ const c = m[2].charCodeAt(0)+1+i; return c<=90 ? m[1]+String.fromCharCode(c) : null; }); if(r) return r; }
-    if((m = name.match(/^([A-Za-z][A-Za-z ]*?\s)(\d+)$/))) return free(i=>m[1]+String(+m[2]+1+i).padStart(m[2].length,'0'));
-    return free(i=>`${name} (${i+2})`);
+/* PipeCAD allows at most 32 characters, spaces included, in a floor, detector or pipe-run name. */
+const NAME_MAX = {Floor: 32, Detector: 32, Piperun: 32};
+const WHAT = {Floor:'floor', Detector:'detector', Piperun:'pipe run'};
+
+/* A floor whose name is already used by an earlier file gets the next free copy number:
+   "Area A" → "Area A (2)", and "Area A (2)" → "Area A (3)". If that would pass the length limit, the name is cut
+   and ends in "...(n)": "Boyers Roadway 2 x Pipes/MASD" → "Boyers Roadway 2 x Pipes/M...(2)" (32 characters). */
+const cutTo = (base, tail, max) => base.length + tail.length <= max ? null : base.slice(0, Math.max(1, max - 3 - tail.trim().length)).trimEnd() + '...' + tail.trim();
+function copyName(name, used, max = NAME_MAX.Floor){
+  const m = name.match(/^(.*?)( |\.\.\.)\((\d+)\)$/), base = m ? m[1] : name, cut = m?.[2]==='...';
+  for(let i = m ? +m[3] + 1 : 2; ; i++){
+    const tail = ` (${i})`, c = cutTo(cut ? base + '...' : base, tail, max) ?? (cut ? `${base}...(${i})` : base + tail);
+    if(!used.has(c)) return c;
   }
-  if((m = name.match(/^(.*?)(\d+)$/))) return free(i=>m[1]+String(+m[2]+1+i).padStart(m[2].length,'0'));
-  return free(i=>`${name} ${i+2}`);
+}
+/* The next free detector name in the original's own pattern: a trailing number continues at the same width
+   ("MASD 01" → "MASD 02", "MASD 1-2" → "MASD 1-3"); a name with no number gets one ("Detector" → "Detector 2").
+   A name too long for that is cut and ends in "...(n)", n being the copy number. */
+function nextName(name, used, max = NAME_MAX.Detector){
+  const m = name.match(/^(.*?)(\d+)$/);
+  for(let i = 0; i < 100000; i++){
+    const c = m ? m[1] + String(+m[2]+1+i).padStart(m[2].length,'0') : `${name} ${i+2}`;
+    const fit = c.length <= max ? c : cutTo(name, `(${i+2})`, max);
+    if(!used.has(fit)) return fit;
+  }
+  return name;
+}
+
+/* A naming convention changes every name of one kind (floors, detectors or pipe runs) in its scope:
+   mode "affix" adds a prefix and/or suffix; mode "replace" replaces every occurrence of some text.
+   Prefix, suffix and replacement may use {file}, {floor} and {detector}. Exhaust runs always keep "Exhaust" first. */
+function applyRule(rule, name, tok){
+  if(!rule || !rule.mode || rule.mode==='none') return name;
+  const x = t => String(t ?? '').replace(/\{(file|floor|detector)\}/g, (_,k)=>tok[k] ?? '');
+  if(rule.mode==='affix') return x(rule.pre) + name + x(rule.suf);
+  if(rule.mode==='replace' && rule.find) return name.split(rule.find).join(x(rule.rep));
+  return name;
+}
+function renameRun(rule, name, tok, exhaust){
+  if(!exhaust) return applyRule(rule, name, tok);
+  const m = name.match(/^(exhaust)\s*(.*)$/i), word = m ? m[1] : 'Exhaust';
+  const nn = m ? (word + ' ' + applyRule(rule, m[2], tok)).trim() : applyRule(rule, name, tok);
+  return /^exhaust/i.test(nn) ? nn : (word + ' ' + nn).trim();
 }
 
 /* PipeCAD numbers every detector, pipe and sampling hole from one counter per file (<id>, 0…max), and its saved
@@ -278,16 +403,97 @@ function nextName(name, used, what){
 const REF_LISTS = new Set(['pipeIds','holeIds','ancillaryIds','pipeDatabase1','pipeDatabase2','holeDatabase1','holeDatabase2']);
 const isIdEl = e => !e.children.length && (e.localName==='id' || e.localName==='detectorId' || (e.localName==='int' && REF_LISTS.has(e.parentNode?.localName)));
 
+/* Names in the merged file, in this order:
+   1. Floors: the file's naming convention, then a copy number when an earlier file already uses the name
+      (one original name maps to one new name within a file), then any name the user typed.
+   2. Detectors only need to be unique on their own floor, so they change only by convention or by the user.
+   3. Names repeated on one floor (or floors repeated in one file) are flagged; the user leaves them or numbers them.
+   4. Pipe runs are locked unless a convention is set for them; exhaust runs keep "Exhaust" first.
+   Every new name must fit its length limit and not clash with a name the user didn't choose to repeat. */
+function nameDesigns(floors, srcOf, {overrides, ruleFor, dupChoice, errors, renames, dups, runRenames}){
+  const nameEl = el => kid(el,'name');
+  const setName = (el, v) => { const n = nameEl(el); if(n) n.textContent = v; };
+  const tooLong = (what, file, from, to) => { if(to.length > NAME_MAX[what]) errors.push(`${file}: the new ${WHAT[what]} name “${to}” (from “${from}”) is ${to.length} characters. Names here can have at most ${NAME_MAX[what]}.`); };
+  const record = (what, file, from, to, auto, why, key, floor) => { if(to!==from || why==='typed') renames.push({what, file, from, to, auto, why, key, floor}); };
+  // 1. floors
+  const earlier = new Set(); let cur = null, own = new Set(), clash = new Map();
+  const info = floors.map(fl=>{
+    const {file, k} = srcOf.get(fl), orig = nameEl(fl)?.textContent ?? '';
+    if(file!==cur){ own.forEach(n=>earlier.add(n)); own = new Set(); clash = new Map(); cur = file; }
+    let nn = applyRule(ruleFor(file,'Floor'), orig, {file: stemOf(file), floor: orig}), why = nn!==orig ? 'convention' : '';
+    if(earlier.has(nn)){
+      if(!clash.has(nn)) clash.set(nn, copyName(nn, new Set([...earlier, ...own, ...clash.values()])));
+      nn = clash.get(nn); why = why ? 'convention + copy number' : 'copy number';
+    }
+    const key = `${file}|Floor|${k}`, auto = nn, want = (overrides.get(key) || '').trim();
+    if(want && want!==auto){ nn = want; why = 'typed'; }
+    if(nn!==orig) tooLong('Floor', file, orig, nn);
+    own.add(nn);
+    return {fl, file, k, orig, nn, auto, why, key};
+  });
+  // floors repeated within one file: flag, then leave or number
+  const byFile = new Map(); info.forEach(x=>{ if(!byFile.has(x.file)) byFile.set(x.file, []); byFile.get(x.file).push(x); });
+  byFile.forEach((list, file)=>{
+    const groups = new Map(); list.forEach(x=>{ if(!groups.has(x.nn)) groups.set(x.nn, []); groups.get(x.nn).push(x); });
+    groups.forEach((g, name)=>{ if(g.length < 2) return;
+      const key = `${file}|Floors|${g.map(x=>x.k).join(',')}`, choice = dupChoice.get(key) || 'leave';
+      dups.push({what:'Floor', file, name, count: g.length, key, choice, where: file});
+      if(choice==='number'){ const used = new Set(info.map(x=>x.nn)); g.slice(1).forEach(x=>{ x.nn = copyName(name, used); used.add(x.nn); x.why = 'numbered'; x.auto = x.nn; }); }
+    });
+  });
+  // a typed floor name must not match another floor, except the original repeats the user chose to leave
+  info.forEach(x=>{ if(x.why!=='typed') return;
+    if(info.some(y=>y!==x && y.nn===x.nn)) errors.push(`“${x.nn}” is already used by another floor, so ${x.file}'s floor “${x.orig}” can't take that name.`); });
+  info.forEach(x=>{ setName(x.fl, x.nn); record('Floor', x.file, x.orig, x.nn, x.auto, x.why, x.key, x.nn); });
+
+  // 2. detectors, per floor
+  info.forEach(x=>{
+    const dets = kids(kid(x.fl,'detectorDatabase'),'Detector').map((d, j)=>{
+      const orig = nameEl(d)?.textContent ?? '';
+      let nn = applyRule(ruleFor(x.file,'Detector'), orig, {file: stemOf(x.file), floor: x.nn, detector: orig}), why = nn!==orig ? 'convention' : '';
+      const key = `${x.file}|Detector|${x.k}|${j}`, auto = nn, want = (overrides.get(key) || '').trim();
+      if(want && want!==auto){ nn = want; why = 'typed'; }
+      return {d, j, orig, nn, auto, why, key};
+    });
+    const groups = new Map(); dets.forEach(y=>{ if(!groups.has(y.nn)) groups.set(y.nn, []); groups.get(y.nn).push(y); });
+    groups.forEach((g, name)=>{ if(g.length < 2) return;
+      const typed = g.filter(y=>y.why==='typed');
+      if(typed.length){ typed.forEach(y=>errors.push(`“${y.nn}” is already used on floor “${x.nn}”, so detector “${y.orig}” can't take that name.`)); return; }
+      const key = `${x.file}|Detectors|${x.k}|${g.map(y=>y.j).join(',')}`, choice = dupChoice.get(key) || 'leave';
+      dups.push({what:'Detector', file: x.file, name, count: g.length, key, choice, where: x.nn});
+      if(choice==='number'){ const used = new Set(dets.map(y=>y.nn)); g.slice(1).forEach(y=>{ y.nn = nextName(name, used); used.add(y.nn); y.why = 'numbered'; y.auto = y.nn; }); }
+    });
+    dets.forEach(y=>{ if(y.nn!==y.orig) tooLong('Detector', x.file, y.orig, y.nn); setName(y.d, y.nn); record('Detector', x.file, y.orig, y.nn, y.auto, y.why, y.key, x.nn);
+      // 4. pipe runs
+      const rule = ruleFor(x.file,'Piperun'); if(!rule || !rule.mode || rule.mode==='none') return;
+      const runs = kids(kid(y.d,'piperunDatabase'),'Piperun').map(r=>{
+        const orig = nameEl(r)?.textContent ?? '', exhaust = /^exhaust/i.test(orig) || +ktxt(r,'layerTag') < 0;
+        return {r, orig, nn: renameRun(rule, orig, {file: stemOf(x.file), floor: x.nn, detector: y.nn}, exhaust)};
+      });
+      runs.forEach(r=>{ if(r.nn===r.orig) return;
+        if(r.nn.length > NAME_MAX.Piperun) errors.push(`${x.file}: the new pipe run name “${r.nn}” (from “${r.orig}” on ${y.nn}) is ${r.nn.length} characters. Names here can have at most ${NAME_MAX.Piperun}.`);
+        if(runs.some(o=>o!==r && o.nn===r.nn && o.orig!==r.orig)) errors.push(`${x.file}: the pipe naming rule would give two pipe runs on ${y.nn} the same name, “${r.nn}”.`);
+        setName(r.r, r.nn); runRenames.push({file: x.file, floor: x.nn, detector: y.nn, from: r.orig, to: r.nn});
+      });
+    });
+  });
+  // keep one message per problem
+  const uniq = [...new Set(errors)]; errors.length = 0; errors.push(...uniq);
+}
+
 /* Merge PipeCAD exports into one <PipeLayout> that PipeCAD can open. The first file supplies the header
    (properties, units, snap grid, pipe type, default options). Every Floor and SavedDatabase from the later files
    is copied unchanged except: all IDs and their references shift by one offset per file (so nothing collides and
    every results link still points at the same pipe or hole), project-tree tags shift the same way, and a floor or
    detector name already used gets the next free name in its own pattern. Coordinates, hole sizes, fan speeds,
    alarm settings and saved results are copied byte for byte. */
-function mergePipeCAD(files, overrides = new Map()){
+function mergePipeCAD(files, opts = {}){
+  if(opts instanceof Map) opts = {overrides: opts};
+  const overrides = opts.overrides || new Map(), conv = opts.conv || {}, dupChoice = opts.dupChoice || new Map();
+  const ruleFor = (file, what) => (conv.scope==='file' ? conv.files?.[file] : conv.project)?.[what];
   const docs = files.map(f=>new DOMParser().parseFromString(f.text, 'application/xml'));
   const base = docs[0], root = base.documentElement, h0 = files[0];
-  const errors = [], warns = [], notes = [], renames = [];
+  const errors = [], warns = [], notes = [], renames = [], dups = [], runRenames = [];
   const ensure = tag => kid(root, tag) || root.appendChild(base.createElementNS(root.namespaceURI, tag));
   const floorDb = ensure('floorDatabase'), resDb = ensure('resultsDatabase');
   const els = doc => Array.from(doc.getElementsByTagName('*'));
@@ -295,8 +501,6 @@ function mergePipeCAD(files, overrides = new Map()){
   const maxId = doc => Math.max(-1, ...ints(doc, isIdEl));
   const maxTag = doc => Math.max(0, ...ints(doc, e=>e.localName==='layerTag').map(Math.abs));
   let idOff = maxId(base) + 1, tagOff = maxTag(base);
-  const floorNames = new Set(kids(floorDb,'Floor').map(f=>ktxt(f,'name')));
-  const detNames = new Set(kids(floorDb,'Floor').flatMap(f=>kids(kid(f,'detectorDatabase'),'Detector')).map(d=>ktxt(d,'name')));
   // Keep the merged file's whitespace in PipeCAD's own layout: new children go where the existing ones are indented.
   const append = (parent, node) => {
     const txt = d => base.createTextNode(d);
@@ -307,7 +511,7 @@ function mergePipeCAD(files, overrides = new Map()){
     if(tail){ parent.insertBefore(txt(ind), tail); parent.insertBefore(node, tail); }
     else { parent.appendChild(txt(ind)); parent.appendChild(node); parent.appendChild(txt(pin)); }
   };
-  const srcOf = new Map(kids(floorDb,'Floor').map(f=>[f, h0.name]));
+  const srcOf = new Map(kids(floorDb,'Floor').map((f,k)=>[f, {file: h0.name, k}]));
 
   // Project-level differences: inner diameter changes the flow calculation, so it blocks the merge.
   const pt0 = h0.pipeType;
@@ -330,7 +534,7 @@ function mergePipeCAD(files, overrides = new Map()){
     kid(root,'pipecadVersion').textContent = newest.version;
     notes.push(`Files come from different PipeCAD versions; the merged file is marked ${newest.version} (newest, from ${newest.name}).`);
   }
-  if(errors.length) return {errors, warns, notes, renames, tree: []};
+  if(errors.length) return {errors, warns, notes, renames, dups, runRenames, tree: []};
 
   docs.slice(1).forEach((doc, k)=>{
     const f = files[k+1], dOff = idOff, tOff = tagOff;
@@ -340,34 +544,13 @@ function mergePipeCAD(files, overrides = new Map()){
     });
     idOff = Math.max(idOff, maxId(doc) + 1); tagOff = Math.max(tagOff, maxTag(doc));
     if(dOff) notes.push(`${f.name}: detector, pipe and hole IDs shifted by +${dOff}, with every saved-results reference shifted to match.`);
-    // Names only clash with earlier files; duplicates inside one file are the designer's own and stay as they are.
-    // The same original name always maps to the same new name within a file.
-    const floorsK = kids(kid(doc.documentElement,'floorDatabase'),'Floor');
-    const detsK = floorsK.flatMap(fl=>kids(kid(fl,'detectorDatabase'),'Detector'));
-    const renameAll = (items, prev, what) => {
-      const own = new Set(items.map(el=>kid(el,'name')?.textContent ?? '')), map = new Map(), taken = new Set([...prev, ...own]);
-      items.forEach(el=>{
-        const n = kid(el,'name'); if(!n) return; const name = n.textContent;
-        if(!prev.has(name)) return;
-        if(!map.has(name)){
-          const key = `${f.name}|${what}|${name}`, want = (overrides.get(key) || '').trim();
-          let nn = nextName(name, taken, what), auto = nn;
-          if(want && want!==auto){ if(taken.has(want)) errors.push(`“${want}” is already used, so ${f.name}'s ${what.toLowerCase()} “${name}” can't take that name.`); else nn = want; }
-          taken.add(nn); map.set(name, nn); renames.push({what, file:f.name, from:name, to:nn, auto, key});
-        }
-        n.textContent = map.get(name);
-      });
-      items.forEach(el=>prev.add(kid(el,'name')?.textContent ?? ''));
-    };
-    renameAll(floorsK, floorNames, 'Floor');
-    renameAll(detsK, detNames, 'Detector');
-    if(errors.length) return;
-    floorsK.forEach(fl=>{ const imp = base.importNode(fl, true); srcOf.set(imp, f.name); append(floorDb, imp); });
+    kids(kid(doc.documentElement,'floorDatabase'),'Floor').forEach((fl, k)=>{ const imp = base.importNode(fl, true); srcOf.set(imp, {file: f.name, k}); append(floorDb, imp); });
     kids(kid(doc.documentElement,'resultsDatabase'),'SavedDatabase').forEach(sd=>append(resDb, base.importNode(sd, true)));
   });
 
-  if(errors.length) return {errors, warns, notes, renames, tree: []};
-  const tree = kids(floorDb,'Floor').map(fl=>({floor: ktxt(fl,'name'), src: srcOf.get(fl),
+  nameDesigns(kids(floorDb,'Floor'), srcOf, {overrides, ruleFor, dupChoice, errors, renames, dups, runRenames});
+  if(errors.length) return {errors, warns, notes, renames, dups, runRenames, tree: []};
+  const tree = kids(floorDb,'Floor').map(fl=>({floor: ktxt(fl,'name'), src: srcOf.get(fl).file,
     dets: kids(kid(fl,'detectorDatabase'),'Detector').map(d=>ktxt(d,'name'))}));
   // Serialize in PipeCAD's own style: original declaration, " />" empty elements, CRLF line ends.
   let xml = new XMLSerializer().serializeToString(base).replace(/^<\?xml[^>]*\?>\s*/, '');
@@ -375,12 +558,180 @@ function mergePipeCAD(files, overrides = new Map()){
   const decl = h0.text.match(/^﻿?\s*(<\?xml[^>]*\?>)/);
   if(decl) xml = decl[1]+'\n'+xml;
   xml = xml.replace(/\r?\n/g, '\r\n');
-  return {xml, errors, warns, notes, renames, tree};
+  return {xml, errors, warns, notes, renames, dups, runRenames, tree};
+}
+
+/* ---------- Design checksums ----------
+   A fingerprint is a SHA-256 of one design with only the things a merge may change left out: floor, detector and
+   pipe-run names, internal IDs and project-tree tags. IDs and tags are renumbered in order of appearance, so a merge
+   that shifts them uniformly leaves the fingerprint equal; a stricter check below confirms the shift really is one
+   constant per file. Everything else is included as written: coordinates, pipes, holes, end caps, T-pieces, outlines,
+   labels, detector settings, and the saved PipeCAD results that belong to the detector. */
+function sha256(str){
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str), len = bytes.length, n = ((len + 9 + 63) >> 6) << 6;
+  const m = new Uint8Array(n); m.set(bytes); m[len] = 0x80;
+  const dv = new DataView(m.buffer); dv.setUint32(n - 4, len * 8 >>> 0); dv.setUint32(n - 8, Math.floor(len / 0x20000000));
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19], W = new Uint32Array(64);
+  const r = (x, k) => (x >>> k) | (x << (32 - k));
+  for(let o = 0; o < n; o += 64){
+    for(let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);
+    for(let i = 16; i < 64; i++) W[i] = (W[i-16] + (r(W[i-15],7) ^ r(W[i-15],18) ^ (W[i-15] >>> 3)) + W[i-7] + (r(W[i-2],17) ^ r(W[i-2],19) ^ (W[i-2] >>> 10))) | 0;
+    let [a,b,c,d,e,f,g,h] = H;
+    for(let i = 0; i < 64; i++){
+      const t1 = (h + (r(e,6) ^ r(e,11) ^ r(e,25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      const t2 = ((r(a,2) ^ r(a,13) ^ r(a,22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0]=(H[0]+a)|0; H[1]=(H[1]+b)|0; H[2]=(H[2]+c)|0; H[3]=(H[3]+d)|0; H[4]=(H[4]+e)|0; H[5]=(H[5]+f)|0; H[6]=(H[6]+g)|0; H[7]=(H[7]+h)|0;
+  }
+  return H.map(x=>(x >>> 0).toString(16).padStart(8,'0')).join('');
+}
+
+const NAMED = new Set(['Floor','Detector','Piperun']);   // their own <name> may change in a merge
+/* One design as path=value lines. ctx renumbers IDs and tree tags in order of appearance and keeps the raw ID
+   values, so the uniform-shift check can compare them pair by pair. */
+function designLines(el, ctx, skip = new Set(), path = el.localName, out = []){
+  const attrs = Array.from(el.attributes).filter(a=>!/^xmlns(:|$)/.test(a.name)).map(a=>`${a.name}=${a.value}`).sort();
+  if(attrs.length) out.push(`${path}@${attrs.join(',')}`);
+  if(!el.children.length){
+    let v = el.textContent.trim();
+    if(isIdEl(el) && !(v==='0' && el.localName==='int')){
+      if(!ctx.ids.has(v)) ctx.ids.set(v, ctx.ids.size + 1);
+      ctx.raw.push(Number(v)); v = '#' + ctx.ids.get(v);
+    } else if(el.localName==='layerTag' && /^-?\d+$/.test(v) && v!=='0'){
+      const a = String(Math.abs(+v)); if(!ctx.tags.has(a)) ctx.tags.set(a, ctx.tags.size + 1);
+      v = (+v < 0 ? '-t' : 't') + ctx.tags.get(a);
+    }
+    out.push(`${path}=${v}`);
+    return out;
+  }
+  const seen = {};
+  for(const c of el.children){
+    const t = c.localName, i = seen[t] = (seen[t] || 0) + 1;
+    if(skip.has(t) || (t==='name' && NAMED.has(el.localName))) continue;
+    designLines(c, ctx, skip, `${path}/${t}[${i}]`, out);
+  }
+  return out;
+}
+const newCtx = () => ({ids: new Map(), tags: new Map(), raw: []});
+
+/* Every floor and detector design in a .pl text, with fingerprints. A detector's design includes the saved
+   results whose detectorId is its own id. */
+const HEADER_TAGS = ['properties','unit','snapGrid','pipeType','options'];
+function designsOf(name, text){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error(name+' is not valid XML');
+  const root = doc.documentElement;
+  const saved = new Map();
+  kids(kid(root,'resultsDatabase'),'SavedDatabase').forEach(sd=>{ const k = ktxt(sd,'detectorId'); if(!saved.has(k)) saved.set(k, []); saved.get(k).push(sd); });
+  const used = new Set();
+  const count = (el, tag) => el.getElementsByTagName(tag).length;
+  const floors = kids(kid(root,'floorDatabase'),'Floor').map(fl=>{
+    const fctx = newCtx(), flines = designLines(fl, fctx, new Set(['detectorDatabase']));
+    const dets = kids(kid(fl,'detectorDatabase'),'Detector').map(d=>{
+      const ctx = newCtx(), lines = designLines(d, ctx), id = ktxt(d,'id');
+      const res = saved.get(id) || []; used.add(id);
+      res.forEach((sd, i)=>designLines(sd, ctx, new Set(), `results[${i+1}]`, lines));
+      const holes = Array.from(d.getElementsByTagName('Hole'));
+      return {name: ktxt(d,'name'), fp: sha256(lines.join('\n')), lines, raw: ctx.raw,
+        runs: kids(kid(d,'piperunDatabase'),'Piperun').map(p=>ktxt(p,'name')),
+        pipes: count(d,'Pipe'), holes: holes.filter(h=>h.getAttribute('xsi:type')!=='Endcap').length,
+        endcaps: holes.filter(h=>h.getAttribute('xsi:type')==='Endcap').length, results: res.length, labels: kid(d,'labelDatabase')?.children.length || 0};
+    });
+    return {name: ktxt(fl,'name'), fp: sha256(flines.join('\n')), lines: flines, raw: fctx.raw, dets, labels: kid(fl,'labelDatabase')?.children.length || 0};
+  });
+  const orphans = [...saved.keys()].filter(k=>!used.has(k)).reduce((n,k)=>n+saved.get(k).length, 0);
+  const header = {};
+  HEADER_TAGS.forEach(t=>{ const e = kid(root,t); header[t] = e ? sha256(designLines(e, newCtx()).join('\n')) : ''; });
+  return {name, floors, orphans, header, version: ktxt(root,'pipecadVersion'), hash: sha256(text)};
+}
+
+/* First few lines where two designs differ, for the report. */
+function diffLines(a, b, max = 5){
+  const out = [], n = Math.max(a.length, b.length);
+  const split = l => { if(l==null) return ['', '(none)']; const k = l.search(/[=@]/); return [l.slice(0,k).replace(/\[1\]/g,'').replace(/^[^/]*\//,''), l.slice(k+1)]; };
+  for(let i = 0; i < n && out.length < max; i++) if(a[i]!==b[i]){
+    const [pa, va] = split(a[i]), [pb, vb] = split(b[i]);
+    out.push(pa===pb ? `${pa}: ${va} → ${vb}` : `${pa||'(none)'} = ${va} → ${pb||'(none)'} = ${vb}`);
+  }
+  return out;
+}
+
+/* Check a merged .pl against its source files. Every source floor and detector is looked for in the merged file:
+   first at its expected place (sources in order, floors and detectors in order), then anywhere with the same
+   fingerprint. Status per design: identical, moved (identical but somewhere else), changed, or missing. For each
+   source file the raw IDs must have shifted by one constant, and the merged file may contain nothing extra. */
+function verifyMerge(mergedName, mergedText, sources){
+  const out = designsOf(mergedName, mergedText), src = sources.map(s=>designsOf(s.name, s.text));
+  const mFloors = out.floors.map(f=>({...f, taken:false, dets: f.dets.map(d=>({...d, taken:false}))}));
+  const mDets = mFloors.flatMap(f=>f.dets.map(d=>Object.assign(d, {home: f})));
+  const rows = [], problems = [];
+  const shiftOf = (a, b) => { if(a.length!==b.length) return null; const s = new Set(a.map((v,i)=>b[i]-v)); return s.size<=1 ? (s.size ? [...s][0] : 0) : null; };
+  // Each source file was shifted by its own constant. Identical designs can appear in two sources (two revisions
+  // of one project), so first work out which shift belongs to which source: every fingerprint match votes for
+  // the shift it implies, and the strongest votes are assigned first, one shift per source.
+  const votes = [];
+  src.forEach((s, si)=>s.floors.forEach(sf=>{
+    mFloors.filter(f=>f.fp===sf.fp).forEach(f=>{ const v = shiftOf(sf.raw, f.raw); if(v!=null && sf.raw.length) votes.push([si, v]); });
+    sf.dets.forEach(sd=>mDets.filter(d=>d.fp===sd.fp).forEach(d=>{ const v = shiftOf(sd.raw, d.raw); if(v!=null) votes.push([si, v]); }));
+  }));
+  const tally = new Map(); votes.forEach(([si, v])=>{ const k = si+'|'+v; tally.set(k, (tally.get(k)||0) + 1); });
+  const want = new Map(), claimed = new Set();
+  [...tally].sort((a,b)=>b[1]-a[1]).forEach(([k])=>{ const [si, v] = k.split('|').map(Number); if(!want.has(si) && !claimed.has(v)){ want.set(si, v); claimed.add(v); } });
+  // Look for a design at its expected place first, then anywhere: same fingerprint and this source's shift,
+  // then same fingerprint only. Anything else is changed (if something sits at the expected place) or missing.
+  const find = (item, expected, pool, si) => {
+    const fits = c => c && !c.taken && c.fp===item.fp;
+    const shifted = c => !want.has(si) || shiftOf(item.raw, c.raw)===want.get(si) || !item.raw.length;
+    if(fits(expected) && shifted(expected)) return [expected, 'identical'];
+    const alt = pool.find(c=>fits(c) && shifted(c)) || pool.find(fits);
+    if(alt) return [alt, alt===expected ? 'identical' : 'moved'];
+    return expected && !expected.taken ? [expected, 'changed'] : [null, 'missing'];
+  };
+  let p = 0;
+  src.forEach((s, si)=>{
+    const shifts = new Set();
+    s.floors.forEach(sf=>{
+      const [mf, how] = find(sf, mFloors[p], mFloors, si);
+      if(mf){ mf.taken = true; p = mFloors.indexOf(mf) + 1; }
+      const fsh = mf && how!=='changed' ? shiftOf(sf.raw, mf.raw) : null;
+      if(fsh!=null && sf.raw.length) shifts.add(fsh);
+      rows.push({file: s.name, kind:'Floor', from: sf.name, to: mf?.name ?? '', floor: mf?.name ?? '', status: how,
+        fpSrc: sf.fp, fpOut: mf?.fp ?? '', diff: how==='changed' ? diffLines(sf.lines, mf.lines) : [], info: `${sf.dets.length} detector${sf.dets.length===1?'':'s'}` + (sf.labels ? `, ${sf.labels} label${sf.labels===1?'':'s'}` : '')});
+      let q = 0;
+      sf.dets.forEach(sd=>{
+        const pool = mf ? mf.dets : [];
+        let [md, dhow] = find(sd, pool[q], [...pool, ...mDets], si);
+        if(md){ md.taken = true; if(md.home===mf) q = pool.indexOf(md) + 1; else if(dhow==='identical') dhow = 'moved'; }
+        const sh = md && dhow!=='changed' ? shiftOf(sd.raw, md.raw) : null;
+        if(sh!=null) shifts.add(sh); else if(md) dhow = 'changed';
+        rows.push({file: s.name, kind:'Detector', from: sd.name, to: md?.name ?? '', floor: md ? md.home.name : '', status: dhow,
+          fpSrc: sd.fp, fpOut: md?.fp ?? '', diff: dhow==='changed' && md ? diffLines(sd.lines, md.lines) : [],
+          info: `${sd.runs.length} pipe runs, ${sd.pipes} pipes, ${sd.holes} holes, ${sd.endcaps} end caps` + (sd.labels ? `, ${sd.labels} label${sd.labels===1?'':'s'}` : '') + `, ${sd.results} saved result${sd.results===1?'':'s'}`,
+          runs: sd.runs, runsOut: md?.runs ?? []});
+      });
+    });
+    if(shifts.size>1) problems.push(`${s.name}: internal IDs did not shift by one constant amount (${[...shifts].join(', ')}). Saved results may point at the wrong pipe or hole.`);
+    s.shift = shifts.size===1 ? [...shifts][0] : null;
+  });
+  mFloors.filter(f=>!f.taken).forEach(f=>problems.push(`The merged file has a floor “${f.name}” that is not in any source file.`));
+  mDets.filter(d=>!d.taken).forEach(d=>problems.push(`The merged file has a detector “${d.name}” on “${d.home.name}” that is not in any source file.`));
+  const srcOrph = src.reduce((n,s)=>n+s.orphans, 0);
+  if(out.orphans!==srcOrph) problems.push(`Saved results not attached to any detector: ${srcOrph} in the sources, ${out.orphans} in the merged file.`);
+  const headerFrom = src.find(s=>HEADER_TAGS.every(t=>out.header[t]===s.header[t]));
+  if(!headerFrom && src.length) problems.push(`Project settings (${HEADER_TAGS.filter(t=>out.header[t]!==src[0].header[t]).join(', ')}) do not match any source file.`);
+  rows.forEach(r=>{ if(r.status==='changed' || r.status==='missing') problems.push(`${r.file}: ${r.kind.toLowerCase()} “${r.from}” is ${r.status==='missing' ? 'missing from the merged file' : 'not identical in the merged file'}.`); });
+  const nDet = rows.filter(r=>r.kind==='Detector').length, okDet = rows.filter(r=>r.kind==='Detector' && (r.status==='identical' || r.status==='moved')).length;
+  return {ok: !problems.length, problems, rows, headerFrom: headerFrom?.name ?? '',
+    merged: {name: mergedName, version: out.version, floors: out.floors.length, dets: mDets.length, hash: out.hash},
+    sources: src.map(s=>({name: s.name, version: s.version, floors: s.floors.length, dets: s.floors.reduce((n,f)=>n+f.dets.length,0), shift: s.shift, hash: s.hash})),
+    counts: {nDet, okDet, nFloor: rows.length - nDet}};
 }
 
 /* ---------- UI ---------- */
 let files = [], merged = null;
-const overrides = new Map(); // user-edited clash names, keyed file|Floor/Detector|original name
+const overrides = new Map(); // names the user typed, keyed by file and position (file|Floor|k, file|Detector|k|j)
 const $ = id => document.getElementById(id);
 const pick = $('pick'), drop = $('drop');
 
@@ -390,8 +741,87 @@ async function addFiles(list){
     try{ files.push(readPl(f.name, await f.text())); }catch(e){ errs.push(e.message); }
   }
   $('fileErr').innerHTML = errs.map(e=>`<div class="msg err">${esc(e)}</div>`).join('');
-  render();
+  renderConvEditor(); render();
 }
+
+/* Naming conventions: one for the project, or one per file. Each has a rule for floors, detectors and pipe runs. */
+const conv = {scope: 'project', project: {}, files: {}};
+const dupChoice = new Map();   // repeated-name group key → 'leave' | 'number'
+const KINDS = [['Floor','Floors'], ['Detector','Detectors'], ['Piperun','Pipe runs']];
+const rulesOf = scopeKey => scopeKey==='*' ? conv.project : (conv.files[scopeKey] = conv.files[scopeKey] || {});
+function convBlock(scopeKey){
+  const rules = rulesOf(scopeKey);
+  return KINDS.map(([what, label])=>{
+    const r = rules[what] || {mode:'none'}, k = `${esc(scopeKey)}|${what}`;
+    const field = (f, ph, aria) => `<input type="text" data-conv="${k}|${f}" value="${esc(r[f] || '')}" placeholder="${ph}" aria-label="${label} ${aria}" maxlength="${NAME_MAX[what]}" spellcheck="false">`;
+    const inputs = r.mode==='affix' ? field('pre','Prefix','prefix') + field('suf','Suffix','suffix')
+      : r.mode==='replace' ? field('find','Find','find') + field('rep','Replace with','replace with')
+      : `<span class="note" style="grid-column:span 2;margin:0">${what==='Piperun' ? `Locked. Pipe run names stay as designed. <button class="hl" type="button" data-preset="${k}">Match pipe names to detector</button>`
+          : what==='Floor' ? 'No change, except copy numbers for names already used.' : 'No change.'}</span>`;
+    return `<div class="crow"><b>${label}</b>
+      <select data-conv="${k}|mode" aria-label="${label} naming convention">
+        <option value="none"${r.mode==='none' || !r.mode ? ' selected' : ''}>${what==='Piperun' ? 'Locked' : 'No change'}</option>
+        <option value="affix"${r.mode==='affix' ? ' selected' : ''}>Prefix / suffix</option>
+        <option value="replace"${r.mode==='replace' ? ' selected' : ''}>Find &amp; replace</option>
+      </select>${inputs}</div>`;
+  }).join('') + `<div class="crow"><span class="tok">Prefix, suffix and replacement can use <code>{file}</code>, <code>{floor}</code> and <code>{detector}</code>. Exhaust runs always keep “Exhaust” first. Names can have at most ${NAME_MAX.Floor} characters, spaces included (PipeCAD's limit).</span></div>`;
+}
+function renderConvEditor(){
+  document.querySelectorAll('input[name=convScope]').forEach(r=>{ r.checked = r.value===conv.scope; });
+  $('convEditor').innerHTML = conv.scope==='project'
+    ? `<div class="conv"><h3>Whole project</h3>${convBlock('*')}</div>`
+    : files.map((f,i)=>`<details class="conv"${i===0 ? ' open' : ''}><summary>${esc(f.name)}</summary>${convBlock(f.name)}</details>`).join('');
+}
+const convFor = () => conv.scope==='project' ? {scope:'project', project: conv.project} : {scope:'file', files: conv.files};
+document.querySelectorAll('input[name=convScope]').forEach(r=>r.addEventListener('change', ()=>{ conv.scope = r.value; renderConvEditor(); render(); }));
+let convTimer = null;
+const convInput = e => {
+  const t = e.target.closest('[data-conv]'); if(!t) return;
+  const [scopeKey, what, field] = t.dataset.conv.split('|'), rules = rulesOf(scopeKey);
+  rules[what] = rules[what] || {mode:'none'}; rules[what][field] = t.value;
+  if(field==='mode'){ renderConvEditor(); render(); }
+  else { clearTimeout(convTimer); convTimer = setTimeout(render, 250); }
+};
+$('convEditor').addEventListener('input', convInput);
+$('convEditor').addEventListener('change', convInput);
+$('convEditor').addEventListener('click', e=>{
+  const b = e.target.closest('[data-preset]'); if(!b) return;
+  const [scopeKey, what] = b.dataset.preset.split('|'); rulesOf(scopeKey)[what] = {mode:'affix', pre:'{detector} ', suf:''};
+  renderConvEditor(); render();
+});
+
+const WHY = {'copy number':'copy number', convention:'naming convention', 'convention + copy number':'naming convention + copy number', numbered:'numbered repeat', typed:'typed by you'};
+const capList = (list, cls, n = 8) => list.slice(0, n).map(e=>`<div class="msg ${cls}">${esc(e)}</div>`).join('') + (list.length > n ? `<div class="msg ${cls}">…and ${list.length - n} more like these.</div>` : '');
+
+let renOpen = false;
+function renderNames(m){
+  const out = $('namesOut');
+  const was = out.querySelector('details.renList'); if(was) renOpen = was.open;
+  const dupH = m.dups.length ? `<p class="note"><b>Repeated names need your decision.</b> These names appear more than once in the same place in an original file. Leave them as the designer made them, or number them in their own pattern.</p>
+    <div class="row" style="margin:4px 0"><span class="note" style="margin:0">All:</span> <span class="seg"><button type="button" data-dupall="leave">Leave as is</button><button type="button" data-dupall="number">Number them</button></span></div>
+    ${m.dups.map(d=>`<div class="dup"><span>${d.what==='Floor' ? `${esc(d.file)} has ${d.count} floors named <b>${esc(d.name)}</b>` : `${d.count} detectors named <b>${esc(d.name)}</b> on floor <b>${esc(d.where)}</b> <span class="note" style="margin:0">(${esc(d.file)})</span>`}</span>
+      <span class="seg"><button type="button" data-dup="${esc(d.key)}" data-v="leave" class="${d.choice==='leave' ? 'on' : ''}">Leave as is</button><button type="button" data-dup="${esc(d.key)}" data-v="number" class="${d.choice==='number' ? 'on' : ''}">Number them</button></span></div>`).join('')}` : '';
+  const renameT = m.renames.length ? `<details class="renList"${m.renames.length <= 15 || renOpen ? ' open' : ''}><summary><b>${m.renames.length} floor and detector name${m.renames.length===1?'':'s'} change.</b> You can type a different name. A floor name must be unique in the project; a detector name must be unique on its floor.</summary>
+    <div class="scroll"><table><thead><tr><th></th><th>From file</th><th>Original name</th><th>New name</th><th>Why</th></tr></thead><tbody>
+    ${m.renames.map(r=>`<tr><td>${r.what}</td><td>${esc(r.file)}</td><td>${esc(r.from)}${r.what==='Detector' ? `<div class="note" style="margin:0">on ${esc(r.floor)}</div>` : ''}</td>
+      <td><input type="text" class="ren" data-key="${esc(r.key)}" value="${esc(r.to)}" maxlength="${NAME_MAX[r.what]}" aria-label="New name for ${esc(r.from)}" style="width:100%;min-width:140px;border:1px solid var(--line);border-radius:5px;padding:4px 7px"></td>
+      <td class="note">${esc(WHY[r.why] || r.why)}</td></tr>`).join('')}
+    </tbody></table></div></details>` : '<p class="note">No floor or detector names change.</p>';
+  const runT = m.runRenames.length ? `<details style="margin-top:8px"><summary><b>${m.runRenames.length} pipe run${m.runRenames.length===1?'':'s'} renamed</b> by the naming convention</summary>
+    <div class="scroll"><table><thead><tr><th>Detector</th><th>Floor</th><th>Original</th><th>New name</th></tr></thead><tbody>
+    ${m.runRenames.map(r=>`<tr><td>${esc(r.detector)}</td><td>${esc(r.floor)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td></tr>`).join('')}</tbody></table></div></details>` : '';
+  out.innerHTML = (m.errors.length ? capList(m.errors, 'err') : '') + dupH + renameT + runT;
+}
+$('namesOut').addEventListener('change', e=>{
+  const i = e.target.closest('input.ren'); if(!i) return;
+  overrides.set(i.dataset.key, i.value); render();
+});
+$('namesOut').addEventListener('click', e=>{
+  const b = e.target.closest('[data-dup],[data-dupall]'); if(!b) return;
+  if(b.dataset.dupall) document.querySelectorAll('#namesOut [data-dup]').forEach(x=>dupChoice.set(x.dataset.dup, b.dataset.dupall));
+  else dupChoice.set(b.dataset.dup, b.dataset.v);
+  render();
+});
 
 function render(){
   $('filesCard').hidden = !files.length;
@@ -403,46 +833,44 @@ function render(){
       <button class="ibtn" data-mv="${i}" data-d="1" ${i===files.length-1?'disabled':''} aria-label="Move down" title="Move down">↓</button>
       <button class="ibtn" data-rm="${i}" aria-label="Remove" title="Remove">×</button></td></tr>`).join('');
   merged = null;
+  renderCheck('merge', null); $('checkCard').hidden = true;
+  $('verifyCard').hidden = !files.length; runFileCheck();
   const card = $('resultCard'), out = $('result');
+  $('namesCard').hidden = files.length < 2;
   if(files.length < 2){ card.hidden = !files.length; out.innerHTML = files.length ? '<div class="msg">Add at least one more .pl file to merge.</div>' : ''; $('dl').disabled = true; return; }
   card.hidden = false;
   let m;
-  try{ m = mergePipeCAD(files, overrides); }
-  catch(e){ out.innerHTML = `<div class="msg err">${esc(e.message)}</div>`; $('dl').disabled = true; return; }
-  const renamed = new Set(m.renames.map(r=>r.to));
-  const renameT = m.renames.length ? `<p class="note"><b>Renamed to avoid clashes with an earlier file.</b> Edit a new name if you prefer another; it must not match any other floor or detector.</p>
-    <div class="scroll"><table><thead><tr><th></th><th>From file</th><th>Original name</th><th>New name</th></tr></thead><tbody>
-    ${m.renames.map(r=>`<tr><td>${r.what}</td><td>${esc(r.file)}</td><td>${esc(r.from)}</td>
-      <td><input type="text" class="ren" data-key="${esc(r.key)}" value="${esc(r.to)}" aria-label="New name for ${esc(r.from)}" style="width:100%;min-width:140px;border:1px solid var(--line);border-radius:5px;padding:4px 7px"></td></tr>`).join('')}
-    </tbody></table></div>` : '';
+  try{ m = mergePipeCAD(files, {overrides, conv: convFor(), dupChoice}); }
+  catch(e){ out.innerHTML = `<div class="msg err">${esc(e.message)}</div>`; $('namesOut').innerHTML = ''; $('dl').disabled = true; return; }
+  renderNames(m);
   const warnH = m.warns.map(n=>`<div class="msg">${esc(n)}</div>`).join('');
   if(m.errors.length){
-    out.innerHTML = m.errors.map(e=>`<div class="msg err">${esc(e)}</div>`).join('') + warnH + renameT;
+    out.innerHTML = capList(m.errors, 'err') + warnH + '<p class="note">Fix the names in step 3 to continue.</p>';
     $('dl').disabled = true; return;
   }
   merged = m;
   $('dl').disabled = false;
   if(!$('outName').dataset.edited) $('outName').value = `${stemOf(files[0].name)}+${files.length-1}-merged.pl`;
+  try{ renderCheck('merge', verifyMerge(outFileName(), m.xml, files), m); $('checkCard').hidden = false; }
+  catch(e){ $('checkMerge').innerHTML = `<div class="chk fail"><b>✗ The design check could not run:</b> ${esc(e.message)}</div>`; $('checkCard').hidden = false; }
   const nDet = m.tree.reduce((n,f)=>n+f.dets.length, 0);
+  const renamed = new Set(m.renames.map(r=>r.what+'|'+r.to));
+  const open = m.dups.filter(d=>d.choice==='leave').length;
   out.innerHTML = `<div class="msg ok">${files.length} files → ${m.tree.length} floor${m.tree.length===1?'':'s'}, ${nDet} detector${nDet===1?'':'s'}. Pipe layouts, hole sizes, detector settings and saved PipeCAD results are copied unchanged.</div>
+    ${open ? `<div class="msg">${open} repeated name${open===1?' is':'s are'} left as in the original file. See step 3 to number them instead.</div>` : ''}
     ${warnH}${m.warns.some(w=>/uses pipe/.test(w)) ? '<p class="note">PipeCAD keeps one pipe type per project. To keep a file\'s own pipe type, move it to the top of the list.</p>' : ''}
-    ${renameT}
     <div class="scroll" style="margin-top:8px"><table><thead><tr><th>Floor</th><th>From</th><th>Detectors</th></tr></thead><tbody>
-    ${m.tree.map(f=>`<tr><td>${esc(f.floor)}${renamed.has(f.floor)?' <span class="tag ren">renamed</span>':''}</td><td>${esc(f.src)}</td>
-      <td>${f.dets.map(d=>esc(d)+(renamed.has(d)?' <span class="tag ren">renamed</span>':'')).join(', ') || '—'}</td></tr>`).join('')}
+    ${m.tree.map(f=>`<tr><td>${esc(f.floor)}${renamed.has('Floor|'+f.floor)?' <span class="tag ren">renamed</span>':''}</td><td>${esc(f.src)}</td>
+      <td>${f.dets.map(d=>esc(d)+(renamed.has('Detector|'+d)?' <span class="tag ren">renamed</span>':'')).join(', ') || '—'}</td></tr>`).join('')}
     </tbody></table></div>
     ${m.notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}`;
 }
 
-$('result').addEventListener('change', e=>{
-  const i = e.target.closest('input.ren'); if(!i) return;
-  overrides.set(i.dataset.key, i.value); render();
-});
 $('fileRows').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   if(b.dataset.rm!=null) files.splice(+b.dataset.rm, 1);
   else { const i = +b.dataset.mv, j = i + +b.dataset.d; [files[i], files[j]] = [files[j], files[i]]; }
-  render();
+  renderConvEditor(); render();
 });
 drop.addEventListener('click', ()=>pick.click());
 drop.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); pick.click(); } });
@@ -451,12 +879,137 @@ pick.addEventListener('change', e=>{ addFiles(e.target.files); e.target.value = 
 ['dragleave','drop'].forEach(t=>drop.addEventListener(t, e=>{ e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e=>addFiles(e.dataTransfer.files));
 $('outName').addEventListener('input', e=>{ e.target.dataset.edited = '1'; });
+const outFileName = () => { const n = $('outName').value.trim() || 'merged.pl'; return /\.pl$/i.test(n) ? n : n + '.pl'; };
+$('outName').addEventListener('change', ()=>{ if(checks.merge) checks.merge.v.merged.name = outFileName(); });
 $('dl').addEventListener('click', ()=>{
   if(!merged) return;
-  let name = $('outName').value.trim() || 'merged.pl'; if(!/\.pl$/i.test(name)) name += '.pl';
-  const url = URL.createObjectURL(new Blob([merged.xml], {type:'application/xml'}));
+  saveBlob(merged.xml, outFileName(), 'application/xml');
+});
+// Check an existing merged file against the files in step 1.
+let checkTarget = null;
+function runFileCheck(){
+  if(!checkTarget || !files.length){ renderCheck('file', null); $('vName').textContent = checkTarget ? checkTarget.name : ''; return; }
+  $('vName').textContent = `${checkTarget.name}, checked against the ${files.length} file${files.length===1?'':'s'} in step 1`;
+  try{ renderCheck('file', verifyMerge(checkTarget.name, checkTarget.text, files)); }
+  catch(e){ renderCheck('file', null); $('checkFile').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+}
+$('vPick').addEventListener('click', ()=>$('vFile').click());
+$('vFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  checkTarget = {name: f.name, text: await f.text()}; runFileCheck();
+});
+
+/* ---------- Design check and difference report ---------- */
+const APP_VERSION = '00.01.000';
+const STATUS = {identical:'✓ Identical', moved:'✓ Identical (moved)', changed:'✗ Changed', missing:'✗ Missing'};
+const shortFp = h => h ? h.slice(0,16) : '—';
+const stamp = () => { const d = new Date(), z = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; };
+
+/* The report as HTML (class "rep"), for the page, printing and saving. renames, when given, tells automatic
+   name changes from ones the user typed. */
+function renameWhy(r, m){
+  const x = m?.renames?.find(n=>n.file===r.file && n.what===r.kind && n.from===r.from && n.to===r.to);
+  return x ? (WHY[x.why] || x.why).replace('by you', 'by the user') : '';
+}
+function reportHTML(v, m){
+  const how = r => renameWhy(r, m);
+  const nameCell = r => {
+    if(r.status==='missing') return '<span class="bad">not found</span>';
+    if(r.to===r.from) return esc(r.to) + ' <span class="small">(unchanged)</span>';
+    const h = how(r); return `<span class="ren">${esc(r.to)}</span> <span class="small">(renamed${h ? ', '+h : ''})</span>`;
+  };
+  const runNote = r => { if(r.kind!=='Detector' || !r.runsOut?.length) return '';
+    const ch = r.runs.map((n,i)=>n!==r.runsOut[i] ? `${esc(n)} → ${esc(r.runsOut[i] ?? '')}` : null).filter(Boolean);
+    return ch.length ? `<div class="small ren">Pipe runs renamed${m ? ' (naming convention)' : ''}: ${ch.join(', ')}</div>` : ''; };
+  const diffNote = r => r.diff?.length ? `<div class="small bad">${r.diff.map(esc).join('<br>')}</div>` : '';
+  const nRen = v.rows.filter(r=>r.status!=='missing' && r.to!==r.from).length;
+  const byFile = v.sources.map(s=>({s, rows: v.rows.filter(r=>r.file===s.name)}));
+  return `<div class="rep">
+  <h1>PipeCAD Project Merge · Difference report</h1>
+  <p class="meta">Merged file <b>${esc(v.merged.name)}</b> · PipeCAD ${esc(v.merged.version||'—')} · ${v.merged.floors} floors, ${v.merged.dets} detectors · checked ${esc(stamp())} with PipeCAD Project Merge v${APP_VERSION}</p>
+  <div class="banner ${v.ok ? 'ok' : 'bad'}">${v.ok
+    ? `PASS · All ${v.counts.nFloor} floors and ${v.counts.nDet} detectors are identical to the original files. ${nRen ? `${nRen} name${nRen===1?' was':'s were'} changed, listed below.` : 'No names were changed.'}`
+    : `FAIL · ${v.problems.length} problem${v.problems.length===1?'':'s'} found. Do not use this merged file until they are resolved.`}</div>
+  ${v.problems.length ? `<h2>Problems</h2><ul>${v.problems.map(p=>`<li class="bad">${esc(p)}</li>`).join('')}</ul>` : ''}
+  <h2>Files</h2>
+  <table><thead><tr><th>File</th><th>PipeCAD</th><th class="n">Floors</th><th class="n">Detectors</th><th class="n">ID shift</th><th>File SHA-256</th></tr></thead><tbody>
+  ${v.sources.map(s=>`<tr><td>${esc(s.name)}${s.name===v.headerFrom ? ' <span class="small">(project settings)</span>' : ''}</td><td>${esc(s.version||'—')}</td><td class="n">${s.floors}</td><td class="n">${s.dets}</td><td class="n">${s.shift==null ? '<span class="bad">inconsistent</span>' : '+'+s.shift}</td><td class="h">${s.hash}</td></tr>`).join('')}
+  <tr><td><b>${esc(v.merged.name)}</b> <span class="small">(merged)</span></td><td>${esc(v.merged.version||'—')}</td><td class="n">${v.merged.floors}</td><td class="n">${v.merged.dets}</td><td></td><td class="h">${v.merged.hash}</td></tr>
+  </tbody></table>
+  <h2>Designs</h2>
+  <table><thead><tr><th>Original name</th><th>In the merged file</th><th>Contents</th><th>Fingerprint (original → merged)</th><th>Result</th></tr></thead><tbody>
+  ${byFile.map(({s, rows})=>`<tr class="file"><td colspan="5">${esc(s.name)}</td></tr>` + rows.map(r=>`<tr class="${r.kind==='Floor' ? 'fl' : ''}">
+    <td>${r.kind==='Floor' ? 'Floor: ' : '&nbsp;&nbsp;'}${esc(r.from)}</td>
+    <td>${nameCell(r)}${r.kind==='Detector' && r.floor && r.status!=='missing' ? `<div class="small">on ${esc(r.floor)}</div>` : ''}${runNote(r)}</td>
+    <td class="small">${esc(r.info)}</td>
+    <td class="h">${shortFp(r.fpSrc)}<br>${shortFp(r.fpOut)}</td>
+    <td class="${r.status==='identical' || r.status==='moved' ? 'ok' : 'bad'}">${STATUS[r.status]}${diffNote(r)}</td></tr>`).join('')).join('')}
+  </tbody></table>
+  <h2>What was checked</h2>
+  <p class="small">Each floor and detector gets a fingerprint (SHA-256) of its whole design: pipe runs, pipes, coordinates, sampling holes, end caps, T-pieces, detector settings, outlines, labels and the saved PipeCAD results that belong to it. The only things left out are what a merge is allowed to change: floor, detector and pipe-run names, and PipeCAD's internal ID numbers and project-tree numbers. Matching fingerprints mean the design is identical. The report also confirms that each file's ID numbers moved by one constant amount, so every saved result still points at the same pipe or hole, that the merged file holds nothing extra, and that its project settings come from one of the files. The file SHA-256 values identify the exact files that were checked.</p>
+  <p class="small"><b>Experimental tool.</b> This report checks the file's contents. It does not replace opening the merged file in PipeCAD and verifying that every design has been properly preserved according to the intended performance and coverage of the original drawings. The user assumes all risks.</p>
+</div>`;
+}
+
+/* The report's design table as CSV (UTF-8 with BOM so Excel shows symbols correctly), with a few summary rows first. */
+function reportCSV(v, m){
+  const q = x => { const t = String(x ?? ''); return /[",\r\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
+  const line = a => a.map(q).join(',');
+  const rows = [
+    ['PipeCAD Project Merge difference report', `v${APP_VERSION}`, stamp()],
+    ['Merged file', v.merged.name, `PipeCAD ${v.merged.version || ''}`, `SHA-256 ${v.merged.hash}`],
+    ['Result', v.ok ? 'PASS' : 'FAIL', `${v.counts.okDet} of ${v.counts.nDet} detectors identical`],
+    ...v.problems.map(p=>['Problem', p]),
+    ...v.sources.map(s=>['Source file', s.name, `PipeCAD ${s.version || ''}`, `SHA-256 ${s.hash}`, `ID shift ${s.shift==null ? 'inconsistent' : '+'+s.shift}`]),
+    [],
+    ['Source file','Type','Original name','Merged name','Merged floor','Name change','Pipe runs renamed','Contents','Original fingerprint','Merged fingerprint','Result','Differences'],
+    ...v.rows.map(r=>[r.file, r.kind, r.from, r.to, r.kind==='Detector' ? r.floor : r.to,
+      r.status!=='missing' && r.to!==r.from ? (renameWhy(r, m) || 'renamed') : '',
+      r.kind==='Detector' ? r.runs.map((n,i)=>n!==r.runsOut[i] && r.runsOut[i]!=null ? `${n} → ${r.runsOut[i]}` : null).filter(Boolean).join('; ') : '',
+      r.info, r.fpSrc, r.fpOut, STATUS[r.status].replace(/^[✓✗] /,''), (r.diff || []).join('; ')])
+  ];
+  return '\ufeff' + rows.map(line).join('\r\n') + '\r\n';
+}
+const repCSS = () => Array.from(document.styleSheets).flatMap(sh=>{ try{ return Array.from(sh.cssRules); }catch(e){ return []; } })
+  .filter(r=>/^\.rep\b/.test(r.selectorText || '')).map(r=>r.cssText).join('\n');
+function saveBlob(text, name, type){
+  const url = URL.createObjectURL(new Blob([text], {type}));
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+const checks = {};   // 'merge' | 'file' → {v, renames}
+function renderCheck(slot, v, m){
+  const el = $(slot==='merge' ? 'checkMerge' : 'checkFile');
+  if(!v){ el.innerHTML = ''; delete checks[slot]; return; }
+  checks[slot] = {v, m};
+  const nRen = v.rows.filter(r=>r.status!=='missing' && r.to!==r.from).length;
+  el.innerHTML = (v.ok
+    ? `<div class="chk pass"><b>✓ Design check passed.</b> All ${v.counts.nFloor} floors and ${v.counts.nDet} detectors in ${esc(v.merged.name)} are identical to the originals${nRen ? `, apart from ${nRen} name change${nRen===1?'':'s'}` : ''}.</div>`
+    : `<div class="chk fail"><b>✗ Design check failed.</b> ${v.problems.length} problem${v.problems.length===1?'':'s'}:<ul>${v.problems.slice(0,6).map(p=>`<li>${esc(p)}</li>`).join('')}${v.problems.length>6 ? `<li>…and ${v.problems.length-6} more in the report.</li>` : ''}</ul></div>`)
+    + `<div class="row"><button class="pbtn" type="button" data-rep="view" data-slot="${slot}">Show report</button>
+       <button class="pbtn" type="button" data-rep="print" data-slot="${slot}">Print report</button>
+       <button class="pbtn" type="button" data-rep="save" data-slot="${slot}">Save report (.html)</button>
+       <button class="pbtn" type="button" data-rep="csv" data-slot="${slot}">Save table (.csv)</button></div>
+       <div class="repBox" hidden></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-rep]'); if(!b) return;
+  const c = checks[b.dataset.slot]; if(!c) return;
+  const html = reportHTML(c.v, c.m);
+  if(b.dataset.rep==='view'){
+    const box = b.closest('.row').nextElementSibling;
+    box.hidden = !box.hidden; if(!box.hidden) box.innerHTML = html;
+    b.textContent = box.hidden ? 'Show report' : 'Hide report';
+  } else if(b.dataset.rep==='print'){
+    $('printArea').innerHTML = html; window.print();
+  } else if(b.dataset.rep==='csv'){
+    saveBlob(reportCSV(c.v, c.m), `${stemOf(c.v.merged.name)}-difference-report.csv`, 'text/csv');
+  } else {
+    const doc = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Difference report · ${esc(c.v.merged.name)}</title><style>body{margin:24px;background:#fff}\n${repCSS()}</style></head><body>${html}</body></html>\n`;
+    saveBlob(doc, `${stemOf(c.v.merged.name)}-difference-report.html`, 'text/html');
+  }
 });
 
 
