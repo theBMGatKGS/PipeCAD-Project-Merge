@@ -256,7 +256,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
         <li><b>Pipe runs</b> are locked unless you set a pipe naming convention. Exhaust runs always keep <code>Exhaust</code> first: a prefix goes after it, so <code>Exhaust Pipe</code> with prefix <code>{detector} </code> becomes <code>Exhaust MASD 01 Pipe</code>.</li>
         <li><b>Naming conventions.</b> Choose <b>One convention for the whole project</b> or <b>A convention for each file</b>. For floors, detectors and pipe runs, pick <b>Prefix / suffix</b> (text added before and after each name) or <b>Find &amp; replace</b> (every occurrence of some text replaced, case-sensitive). Prefix, suffix and replacement can use <code>{file}</code> (the file name without <code>.pl</code>), <code>{floor}</code> and <code>{detector}</code>. <b>Match pipe names to detector</b> sets the pipe prefix to <code>{detector} </code>. A convention is applied first; a floor that then clashes with an earlier file still gets a copy number.</li>
         <li><b>Typing a name.</b> Every changed floor and detector is listed with the reason, and you can type a different name. A floor name must not match another floor; a detector name must not match another detector on the same floor.</li>
-        <li><b>Length limits.</b> New names can have at most 50 characters for floors and 31 for detectors and pipe runs, so they fit PipeCAD's project tree and a spreadsheet tab in the MASD Field Report. Copy numbers shorten a long floor name to fit; a convention or typed name that is too long is refused with a message. Original names are never shortened.</li>
+        <li><b>Length limits.</b> PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. Copy numbers shorten a long floor name to fit; a convention or typed name that is too long is refused with a message. Original names are never shortened.</li>
       </ul>
 
       <h3 id="help-check">Design check and difference report</h3>
@@ -320,7 +320,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <p><b>PipeCAD Project Merge is an experimental tool</b>, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD. Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings: floors, detectors, pipe networks, sampling holes, alarm settings and calculated results. <b>The user assumes all risks</b> arising from the use of this tool and of any file it produces. The original files are never changed. Keep them as the reference.</p>
 
       <h3 id="help-revisions">Revision log</h3>
-      <dl class="faq"><dt>00.01.000 · 2026-10-12</dt><dd>Design check: every floor and detector is fingerprinted (SHA-256) and compared with the originals after each merge, with ID shifts and file checksums. Difference report to show, print or save as PDF, HTML or CSV, and a check for existing merged files. Naming: floors that are already used get copy numbers (<code>Area A (2)</code>); detectors only need unique names on their floor; repeated names are flagged to leave or number; naming conventions (prefix/suffix or find &amp; replace) for floors, detectors and pipe runs, for the whole project or per file; exhaust runs keep “Exhaust” first; name length limits. Help and Quick Start updated.</dd>
+      <dl class="faq"><dt>00.01.000 · 2026-10-12</dt><dd>Design check: every floor and detector is fingerprinted (SHA-256) and compared with the originals after each merge, with ID shifts and file checksums. Difference report to show, print or save as PDF, HTML or CSV, and a check for existing merged files. Naming: floors that are already used get copy numbers (<code>Area A (2)</code>); detectors only need unique names on their floor; repeated names are flagged to leave or number; naming conventions (prefix/suffix or find &amp; replace) for floors, detectors and pipe runs, for the whole project or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit. Help and Quick Start updated.</dd>
       <dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, the experimental-tool disclaimer, offline use and app install.</dd></dl>
     </div>
   </div>
@@ -350,9 +350,8 @@ const unitName = u => u==='1' ? 'Imperial (ft)' : u==='' ? '—' : 'Metric (unit
 const verCmp = (a,b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
   for(let i=0;i<Math.max(x.length,y.length);i++){ const d = (x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
 
-/* Name length limits per entry location. PipeCAD doesn't publish its limits; these are kept conservative so a
-   name fits PipeCAD's project tree and a spreadsheet tab (31 characters) in the MASD Field Report. */
-const NAME_MAX = {Floor: 50, Detector: 31, Piperun: 31};
+/* PipeCAD allows at most 32 characters, spaces included, in a floor, detector or pipe-run name. */
+const NAME_MAX = {Floor: 32, Detector: 32, Piperun: 32};
 const WHAT = {Floor:'floor', Detector:'detector', Piperun:'pipe run'};
 
 /* A floor whose name is already used by an earlier file gets the next free copy number:
@@ -764,7 +763,7 @@ function convBlock(scopeKey){
         <option value="affix"${r.mode==='affix' ? ' selected' : ''}>Prefix / suffix</option>
         <option value="replace"${r.mode==='replace' ? ' selected' : ''}>Find &amp; replace</option>
       </select>${inputs}</div>`;
-  }).join('') + `<div class="crow"><span class="tok">Prefix, suffix and replacement can use <code>{file}</code>, <code>{floor}</code> and <code>{detector}</code>. Exhaust runs always keep “Exhaust” first. Limits: floors ${NAME_MAX.Floor}, detectors ${NAME_MAX.Detector}, pipe runs ${NAME_MAX.Piperun} characters.</span></div>`;
+  }).join('') + `<div class="crow"><span class="tok">Prefix, suffix and replacement can use <code>{file}</code>, <code>{floor}</code> and <code>{detector}</code>. Exhaust runs always keep “Exhaust” first. Names can have at most ${NAME_MAX.Floor} characters, spaces included (PipeCAD's limit).</span></div>`;
 }
 function renderConvEditor(){
   document.querySelectorAll('input[name=convScope]').forEach(r=>{ r.checked = r.value===conv.scope; });

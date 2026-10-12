@@ -59,7 +59,7 @@ Each step on the page has a link to the matching Help section. The Quick Start p
   - **Pipe runs** are locked unless the user sets a pipe naming convention. Exhaust runs always keep `Exhaust` first.
   - **Naming conventions:** one for the whole project, or one per file. For floors, detectors and pipe runs, choose **Prefix / suffix** or **Find & replace** (case-sensitive). Prefix, suffix and replacement can use `{file}`, `{floor}` and `{detector}`. **Match pipe names to detector** sets the pipe prefix to `{detector} `.
   - **Typed names:** any changed floor or detector name can be overtyped. A floor name must not match another floor, and a detector name must not match another detector on its floor.
-  - **Length limits** for new names: floors 50 characters; detectors and pipe runs 31, so they fit a spreadsheet tab in the MASD Field Report. These are the tool's own limits (PipeCAD doesn't publish its limits). Copy numbers shorten a long floor name to fit; an over-long convention or typed name is refused.
+  - **Length limit:** PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. Copy numbers shorten a long floor name to fit; an over-long convention or typed name is refused.
 - **Refused:** files in different units, or with a different pipe bore or material, because their airflow results would change.
 - **Flagged:** a different stick length, OD or part number. PipeCAD keeps one pipe type per project, so socket counts and part numbers follow the first file's pipe if PipeCAD recalculates.
 - **Version.** The merged file is marked with the newest PipeCAD version among the inputs.
@@ -122,5 +122,5 @@ Validated on six real PipeCAD 3.5.0.132 / 3.6.2.139 projects (49 detectors, 17 f
 
 ## Versions
 `vMM.mm.rrr`. Releases are tagged by hand in GitHub.
-- **00.01.000** (2026-10-12): design check with SHA-256 fingerprints, ID-shift and file checksums; difference report (print/PDF, HTML, CSV); check for existing merged files; copy-number floor names (`Area A (2)`); detectors unique per floor; repeated names flagged to leave or number; prefix/suffix and find & replace naming conventions for floors, detectors and pipe runs, project-wide or per file; exhaust runs keep “Exhaust” first; name length limits; Help and Quick Start updated.
+- **00.01.000** (2026-10-12): design check with SHA-256 fingerprints, ID-shift and file checksums; difference report (print/PDF, HTML, CSV); check for existing merged files; copy-number floor names (`Area A (2)`); detectors unique per floor; repeated names flagged to leave or number; prefix/suffix and find & replace naming conventions for floors, detectors and pipe runs, project-wide or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit; Help and Quick Start updated.
 - **00.00.001** (2026-10-09): first release. Merge, rename review and edit, pipe/unit checks, Quick Start and Help, the experimental-tool disclaimer, PWA install and offline use.
