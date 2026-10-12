@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PipeCAD Project Merge</title>
-<meta name="description" content="Combine several PipeCAD 3.6 project files (.pl) into one, in the browser.">
+<meta name="description" content="Combine several PipeCAD 3.5 and 3.6 project files (.pl) into one, in the browser, and check that every design is unchanged.">
 <meta name="theme-color" content="#1f3a5f">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
@@ -95,6 +95,38 @@ dl.faq{margin:0}
 dl.faq dt{font-weight:700;font-size:13.5px;color:var(--ink);margin:12px 0 3px}
 dl.faq dd{margin:0}
 code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);border-radius:4px;padding:0 4px;font-size:12.5px}
+/* design check and report */
+.chk{border-radius:6px;padding:10px 12px;margin:4px 0 8px;font-size:13.5px}
+.chk.pass{background:var(--passbg);color:var(--pass);border-left:4px solid var(--pass)}
+.chk.fail{background:var(--failbg);color:var(--fail);border-left:4px solid var(--fail)}
+.chk b{font-size:14px}
+.chk ul{margin:6px 0 0;padding-left:20px}
+.repBox{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#fff;max-height:70vh;overflow:auto}
+#printArea{display:none}
+@media print{
+  body{background:#fff}
+  body > *:not(#printArea){display:none !important}
+  #printArea{display:block}
+}
+.rep{-webkit-print-color-adjust:exact;print-color-adjust:exact;font:12.5px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#17202b}
+.rep h1{font-size:18px;margin:0 0 2px;color:#1f3a5f}
+.rep h2{font-size:13px;margin:18px 0 6px;color:#1f3a5f;text-transform:uppercase;letter-spacing:.04em}
+.rep .meta{color:#566172;margin:0 0 10px}
+.rep table{width:100%;border-collapse:collapse;margin:4px 0 8px}
+.rep th,.rep td{border:1px solid #d5dbe3;padding:4px 6px;text-align:left;vertical-align:top}
+.rep th{background:#f1f4f8;font-size:11.5px;color:#566172}
+.rep td.n{text-align:right;font-variant-numeric:tabular-nums}
+.rep tr.fl td{background:#f6f8fb;font-weight:600}
+.rep tr.file td{background:#1f3a5f;color:#fff;font-weight:700}
+.rep .h{font-family:Consolas,"SFMono-Regular",Menlo,monospace;font-size:11px;word-break:break-all}
+.rep .ok{color:#1b7a3a;font-weight:700}
+.rep .bad{color:#b3261e;font-weight:700}
+.rep .ren{color:#8a5a00;font-weight:600}
+.rep .banner{padding:8px 10px;border-radius:5px;font-weight:700;margin:6px 0 10px}
+.rep .banner.ok{background:#e2f3e7;border:1px solid #1b7a3a}
+.rep .banner.bad{background:#fbe4e1;border:1px solid #b3261e}
+.rep .small{font-size:11.5px;color:#566172}
+.rep tr{page-break-inside:avoid}
 @media (max-width:640px){.bar{position:static}.helpOverlay{padding:12px 8px}.helpCard{max-height:calc(100vh - 24px)}.helpBody{padding:14px 16px 24px}}
 </style>
 </head>
@@ -147,13 +179,27 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
     </div>
     <p class="note"><b>Experimental tool:</b> open the merged file in PipeCAD and verify that every design is preserved as intended before relying on it. The user assumes all risks. It also imports into the MASD Field Report with <b>Import PipeCAD (.pl)</b>.</p>
   </section>
+
+  <section class="card" id="checkCard" hidden>
+    <h2>4 · Design check <button class="hl" type="button" data-help="check">What is checked?</button></h2>
+    <div id="checkMerge"></div>
+  </section>
+
+  <section class="card" id="verifyCard" hidden>
+    <h2>Check an existing merged file <button class="hl" type="button" data-help="check">How it works</button></h2>
+    <p class="note" style="margin-top:0">Already have a merged <code>.pl</code>? Keep its original files in step 1, then choose the merged file here. Every floor and detector is compared with the originals, and you get the same report.</p>
+    <div class="row"><button class="pbtn" type="button" id="vPick">Choose merged .pl</button> <span class="note" id="vName" style="margin:0"></span></div>
+    <input type="file" id="vFile" accept=".pl,.xml" hidden>
+    <div id="checkFile"></div>
+  </section>
 </main>
+<div id="printArea"></div>
 
 <div class="helpOverlay" id="helpOverlay">
   <div class="helpCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="helpHead"><h2 id="helpTitle">Help · PipeCAD Project Merge</h2><button class="helpClose" id="helpClose" type="button" aria-label="Close help">&times;</button></div>
     <nav class="helpNav">
-      <a href="#help-quick-start">Quick Start</a><a href="#help-how">How the merge works</a><a href="#help-names">Naming rules</a>
+      <a href="#help-quick-start">Quick Start</a><a href="#help-how">How the merge works</a><a href="#help-names">Naming rules</a><a href="#help-check">Design check &amp; report</a>
       <a href="#help-settings">Project settings</a><a href="#help-messages">Messages</a><a href="#help-faq">FAQs</a>
       <a href="#help-install">Install &amp; privacy</a><a href="#help-disclaimer">Disclaimer</a><a href="#help-revisions">Revision log</a>
     </nav>
@@ -180,6 +226,18 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
         <li>You can type your own name in the <b>Renamed</b> table. It must not match any other floor or detector.</li>
       </ul>
 
+      <h3 id="help-check">Design check and difference report</h3>
+      <p>After every merge the tool reads the merged file back and compares it with the original files, so you can see that each design came through unchanged. The result appears under <b>4 · Design check</b>.</p>
+      <ul>
+        <li><b>Fingerprints.</b> Each floor and detector gets a SHA-256 fingerprint of its whole design: pipe runs, pipes, coordinates, sampling holes, end caps, T-pieces, detector settings, outlines, labels and the saved PipeCAD results that belong to it. Only what a merge is allowed to change is left out: floor, detector and pipe-run names, and PipeCAD's internal ID and project-tree numbers. If the original and merged fingerprints match, the design is identical.</li>
+        <li><b>ID numbers.</b> The check confirms that each file's internal IDs moved by one constant amount (the <b>ID shift</b>), so every saved result still points at the same pipe or hole.</li>
+        <li><b>Nothing extra or missing.</b> Every floor and detector must be found, the merged file must not hold anything that isn't in a source file, and its project settings must come from one of the files.</li>
+        <li><b>Results.</b> <span style="color:var(--pass);font-weight:700">✓ Identical</span> means the design matches at its expected place; <b>Identical (moved)</b> means it matches but sits somewhere else in the file; <span style="color:var(--fail);font-weight:700">✗ Changed</span> lists the first values that differ; <span style="color:var(--fail);font-weight:700">✗ Missing</span> means it was not found.</li>
+        <li><b>The report</b> lists every file with its SHA-256 checksum and ID shift, then every floor and detector with its original and merged name (marked automatic or typed by you), contents, fingerprints and result. Use <b>Show report</b> to read it, <b>Print report</b> to print it or save it as PDF, or <b>Save report (.html)</b> to keep a copy that opens in any browser.</li>
+        <li><b>Check an existing merged file.</b> Keep the original files in step 1, then use <b>Choose merged .pl</b> at the bottom of the page. The order of the originals doesn't matter.</li>
+      </ul>
+      <p>The check reads the file's contents. It doesn't replace opening the merged file in PipeCAD and verifying the designs there.</p>
+
       <h3 id="help-settings">Project settings and which file goes first</h3>
       <p>A PipeCAD project has one set of project-wide settings. The merged file takes them from the <b>first</b> file in the list:</p>
       <ul>
@@ -203,7 +261,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       <h3 id="help-faq">FAQs</h3>
       <dl class="faq">
         <dt>Will the design or the calculated performance change?</dt>
-        <dd>No. Every value in every floor, detector, pipe, hole and saved result is copied exactly. Only internal ID numbers and clashing names change. Running <code>tools/verify_merge.py</code> from the repository on a merge checks this field by field.</dd>
+        <dd>No. Every value in every floor, detector, pipe, hole and saved result is copied exactly. Only internal ID numbers and clashing names change. The <b>Design check</b> after each merge confirms this design by design, and the difference report can be printed or saved. <code>tools/verify_merge.py</code> in the repository runs a similar check outside the app.</dd>
         <dt>Can I merge two revisions of the same project?</dt>
         <dd>Yes. Matching floors and detectors from the later file are renamed, so you can compare them side by side in PipeCAD.</dd>
         <dt>Can I merge a merged file again?</dt>
@@ -217,7 +275,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
       </dl>
 
       <h3 id="help-install">Install and privacy</h3>
-      <p>This tool runs entirely in your browser. Files are read on this device and never uploaded. After the first visit it works offline. To install it as an app, use your browser's <b>Install</b> option (Chrome or Edge: the install icon in the address bar; Safari on iPhone or iPad: Share → Add to Home Screen). A Windows <code>.exe</code> installer is also available from the GitHub release page.</p>
+      <p>This tool runs entirely in your browser. Files are read on this device and never uploaded. After the first visit it works offline. To install it as an app, use your browser's <b>Install</b> option (Chrome or Edge: the install icon in the address bar; Safari on iPhone or iPad: Share → Add to Home Screen). A Windows installer is also available: download <code>PipeCAD-Project-Merge-Setup</code> <code>.exe</code> from the <a href="https://github.com/theBMGatKGS/PipeCAD-Project-Merge/releases/latest" target="_blank" rel="noopener">latest release</a>. It isn't code-signed yet, so Windows may show a SmartScreen warning: choose <b>More info</b>, then <b>Run anyway</b>.</p>
 
       <h3 id="help-disclaimer">Disclaimer</h3>
       <p><b>PipeCAD Project Merge is an experimental tool</b>, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD. Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings: floors, detectors, pipe networks, sampling holes, alarm settings and calculated results. <b>The user assumes all risks</b> arising from the use of this tool and of any file it produces. The original files are never changed. Keep them as the reference.</p>
@@ -461,13 +519,17 @@ function designsOf(name, text){
   const orphans = [...saved.keys()].filter(k=>!used.has(k)).reduce((n,k)=>n+saved.get(k).length, 0);
   const header = {};
   HEADER_TAGS.forEach(t=>{ const e = kid(root,t); header[t] = e ? sha256(designLines(e, newCtx()).join('\n')) : ''; });
-  return {name, floors, orphans, header, version: ktxt(root,'pipecadVersion')};
+  return {name, floors, orphans, header, version: ktxt(root,'pipecadVersion'), hash: sha256(text)};
 }
 
 /* First few lines where two designs differ, for the report. */
 function diffLines(a, b, max = 5){
   const out = [], n = Math.max(a.length, b.length);
-  for(let i = 0; i < n && out.length < max; i++) if(a[i]!==b[i]) out.push({was: a[i] ?? '(none)', now: b[i] ?? '(none)'});
+  const split = l => { if(l==null) return ['', '(none)']; const k = l.search(/[=@]/); return [l.slice(0,k).replace(/\[1\]/g,'').replace(/^[^/]*\//,''), l.slice(k+1)]; };
+  for(let i = 0; i < n && out.length < max; i++) if(a[i]!==b[i]){
+    const [pa, va] = split(a[i]), [pb, vb] = split(b[i]);
+    out.push(pa===pb ? `${pa}: ${va} → ${vb}` : `${pa||'(none)'} = ${va} → ${pb||'(none)'} = ${vb}`);
+  }
   return out;
 }
 
@@ -537,8 +599,8 @@ function verifyMerge(mergedName, mergedText, sources){
   rows.forEach(r=>{ if(r.status==='changed' || r.status==='missing') problems.push(`${r.file}: ${r.kind.toLowerCase()} “${r.from}” is ${r.status==='missing' ? 'missing from the merged file' : 'not identical in the merged file'}.`); });
   const nDet = rows.filter(r=>r.kind==='Detector').length, okDet = rows.filter(r=>r.kind==='Detector' && (r.status==='identical' || r.status==='moved')).length;
   return {ok: !problems.length, problems, rows, headerFrom: headerFrom?.name ?? '',
-    merged: {name: mergedName, version: out.version, floors: out.floors.length, dets: mDets.length},
-    sources: src.map(s=>({name: s.name, version: s.version, floors: s.floors.length, dets: s.floors.reduce((n,f)=>n+f.dets.length,0), shift: s.shift})),
+    merged: {name: mergedName, version: out.version, floors: out.floors.length, dets: mDets.length, hash: out.hash},
+    sources: src.map(s=>({name: s.name, version: s.version, floors: s.floors.length, dets: s.floors.reduce((n,f)=>n+f.dets.length,0), shift: s.shift, hash: s.hash})),
     counts: {nDet, okDet, nFloor: rows.length - nDet}};
 }
 
@@ -567,6 +629,8 @@ function render(){
       <button class="ibtn" data-mv="${i}" data-d="1" ${i===files.length-1?'disabled':''} aria-label="Move down" title="Move down">↓</button>
       <button class="ibtn" data-rm="${i}" aria-label="Remove" title="Remove">×</button></td></tr>`).join('');
   merged = null;
+  renderCheck('merge', null); $('checkCard').hidden = true;
+  $('verifyCard').hidden = !files.length; runFileCheck();
   const card = $('resultCard'), out = $('result');
   if(files.length < 2){ card.hidden = !files.length; out.innerHTML = files.length ? '<div class="msg">Add at least one more .pl file to merge.</div>' : ''; $('dl').disabled = true; return; }
   card.hidden = false;
@@ -587,6 +651,8 @@ function render(){
   merged = m;
   $('dl').disabled = false;
   if(!$('outName').dataset.edited) $('outName').value = `${stemOf(files[0].name)}+${files.length-1}-merged.pl`;
+  try{ renderCheck('merge', verifyMerge(outFileName(), m.xml, files), m.renames); $('checkCard').hidden = false; }
+  catch(e){ $('checkMerge').innerHTML = `<div class="chk fail"><b>✗ The design check could not run:</b> ${esc(e.message)}</div>`; $('checkCard').hidden = false; }
   const nDet = m.tree.reduce((n,f)=>n+f.dets.length, 0);
   out.innerHTML = `<div class="msg ok">${files.length} files → ${m.tree.length} floor${m.tree.length===1?'':'s'}, ${nDet} detector${nDet===1?'':'s'}. Pipe layouts, hole sizes, detector settings and saved PipeCAD results are copied unchanged.</div>
     ${warnH}${m.warns.some(w=>/uses pipe/.test(w)) ? '<p class="note">PipeCAD keeps one pipe type per project. To keep a file\'s own pipe type, move it to the top of the list.</p>' : ''}
@@ -615,12 +681,112 @@ pick.addEventListener('change', e=>{ addFiles(e.target.files); e.target.value = 
 ['dragleave','drop'].forEach(t=>drop.addEventListener(t, e=>{ e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e=>addFiles(e.dataTransfer.files));
 $('outName').addEventListener('input', e=>{ e.target.dataset.edited = '1'; });
+const outFileName = () => { const n = $('outName').value.trim() || 'merged.pl'; return /\.pl$/i.test(n) ? n : n + '.pl'; };
+$('outName').addEventListener('change', ()=>{ if(checks.merge) checks.merge.v.merged.name = outFileName(); });
 $('dl').addEventListener('click', ()=>{
   if(!merged) return;
-  let name = $('outName').value.trim() || 'merged.pl'; if(!/\.pl$/i.test(name)) name += '.pl';
-  const url = URL.createObjectURL(new Blob([merged.xml], {type:'application/xml'}));
+  saveBlob(merged.xml, outFileName(), 'application/xml');
+});
+// Check an existing merged file against the files in step 1.
+let checkTarget = null;
+function runFileCheck(){
+  if(!checkTarget || !files.length){ renderCheck('file', null); $('vName').textContent = checkTarget ? checkTarget.name : ''; return; }
+  $('vName').textContent = `${checkTarget.name}, checked against the ${files.length} file${files.length===1?'':'s'} in step 1`;
+  try{ renderCheck('file', verifyMerge(checkTarget.name, checkTarget.text, files)); }
+  catch(e){ renderCheck('file', null); $('checkFile').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+}
+$('vPick').addEventListener('click', ()=>$('vFile').click());
+$('vFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  checkTarget = {name: f.name, text: await f.text()}; runFileCheck();
+});
+
+/* ---------- Design check and difference report ---------- */
+const APP_VERSION = '00.00.001';
+const STATUS = {identical:'✓ Identical', moved:'✓ Identical (moved)', changed:'✗ Changed', missing:'✗ Missing'};
+const shortFp = h => h ? h.slice(0,16) : '—';
+const stamp = () => { const d = new Date(), z = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; };
+
+/* The report as HTML (class "rep"), for the page, printing and saving. renames, when given, tells automatic
+   name changes from ones the user typed. */
+function reportHTML(v, renames = []){
+  const how = r => { const x = renames.find(n=>n.file===r.file && n.what===r.kind && n.from===r.from);
+    return x ? (x.to===x.auto ? 'automatic' : 'typed by user') : ''; };
+  const nameCell = r => {
+    if(r.status==='missing') return '<span class="bad">not found</span>';
+    if(r.to===r.from) return esc(r.to) + ' <span class="small">(unchanged)</span>';
+    const h = how(r); return `<span class="ren">${esc(r.to)}</span> <span class="small">(renamed${h ? ', '+h : ''})</span>`;
+  };
+  const runNote = r => { if(r.kind!=='Detector' || !r.runsOut?.length) return '';
+    const ch = r.runs.map((n,i)=>n!==r.runsOut[i] ? `${esc(n)} → ${esc(r.runsOut[i] ?? '')}` : null).filter(Boolean);
+    return ch.length ? `<div class="small ren">Pipe runs renamed: ${ch.join(', ')}</div>` : ''; };
+  const diffNote = r => r.diff?.length ? `<div class="small bad">${r.diff.map(esc).join('<br>')}</div>` : '';
+  const nRen = v.rows.filter(r=>r.status!=='missing' && r.to!==r.from).length;
+  const byFile = v.sources.map(s=>({s, rows: v.rows.filter(r=>r.file===s.name)}));
+  return `<div class="rep">
+  <h1>PipeCAD Project Merge · Difference report</h1>
+  <p class="meta">Merged file <b>${esc(v.merged.name)}</b> · PipeCAD ${esc(v.merged.version||'—')} · ${v.merged.floors} floors, ${v.merged.dets} detectors · checked ${esc(stamp())} with PipeCAD Project Merge v${APP_VERSION}</p>
+  <div class="banner ${v.ok ? 'ok' : 'bad'}">${v.ok
+    ? `PASS · All ${v.counts.nFloor} floors and ${v.counts.nDet} detectors are identical to the original files. ${nRen ? `${nRen} name${nRen===1?' was':'s were'} changed, listed below.` : 'No names were changed.'}`
+    : `FAIL · ${v.problems.length} problem${v.problems.length===1?'':'s'} found. Do not use this merged file until they are resolved.`}</div>
+  ${v.problems.length ? `<h2>Problems</h2><ul>${v.problems.map(p=>`<li class="bad">${esc(p)}</li>`).join('')}</ul>` : ''}
+  <h2>Files</h2>
+  <table><thead><tr><th>File</th><th>PipeCAD</th><th class="n">Floors</th><th class="n">Detectors</th><th class="n">ID shift</th><th>File SHA-256</th></tr></thead><tbody>
+  ${v.sources.map(s=>`<tr><td>${esc(s.name)}${s.name===v.headerFrom ? ' <span class="small">(project settings)</span>' : ''}</td><td>${esc(s.version||'—')}</td><td class="n">${s.floors}</td><td class="n">${s.dets}</td><td class="n">${s.shift==null ? '<span class="bad">inconsistent</span>' : '+'+s.shift}</td><td class="h">${s.hash}</td></tr>`).join('')}
+  <tr><td><b>${esc(v.merged.name)}</b> <span class="small">(merged)</span></td><td>${esc(v.merged.version||'—')}</td><td class="n">${v.merged.floors}</td><td class="n">${v.merged.dets}</td><td></td><td class="h">${v.merged.hash}</td></tr>
+  </tbody></table>
+  <h2>Designs</h2>
+  <table><thead><tr><th>Original name</th><th>In the merged file</th><th>Contents</th><th>Fingerprint (original → merged)</th><th>Result</th></tr></thead><tbody>
+  ${byFile.map(({s, rows})=>`<tr class="file"><td colspan="5">${esc(s.name)}</td></tr>` + rows.map(r=>`<tr class="${r.kind==='Floor' ? 'fl' : ''}">
+    <td>${r.kind==='Floor' ? 'Floor: ' : '&nbsp;&nbsp;'}${esc(r.from)}</td>
+    <td>${nameCell(r)}${r.kind==='Detector' && r.floor && r.status!=='missing' ? `<div class="small">on ${esc(r.floor)}</div>` : ''}${runNote(r)}</td>
+    <td class="small">${esc(r.info)}</td>
+    <td class="h">${shortFp(r.fpSrc)}<br>${shortFp(r.fpOut)}</td>
+    <td class="${r.status==='identical' || r.status==='moved' ? 'ok' : 'bad'}">${STATUS[r.status]}${diffNote(r)}</td></tr>`).join('')).join('')}
+  </tbody></table>
+  <h2>What was checked</h2>
+  <p class="small">Each floor and detector gets a fingerprint (SHA-256) of its whole design: pipe runs, pipes, coordinates, sampling holes, end caps, T-pieces, detector settings, outlines, labels and the saved PipeCAD results that belong to it. The only things left out are what a merge is allowed to change: floor, detector and pipe-run names, and PipeCAD's internal ID numbers and project-tree numbers. Matching fingerprints mean the design is identical. The report also confirms that each file's ID numbers moved by one constant amount, so every saved result still points at the same pipe or hole, that the merged file holds nothing extra, and that its project settings come from one of the files. The file SHA-256 values identify the exact files that were checked.</p>
+  <p class="small"><b>Experimental tool.</b> This report checks the file's contents. It does not replace opening the merged file in PipeCAD and verifying that every design has been properly preserved according to the intended performance and coverage of the original drawings. The user assumes all risks.</p>
+</div>`;
+}
+
+const repCSS = () => Array.from(document.styleSheets).flatMap(sh=>{ try{ return Array.from(sh.cssRules); }catch(e){ return []; } })
+  .filter(r=>/^\.rep\b/.test(r.selectorText || '')).map(r=>r.cssText).join('\n');
+function saveBlob(text, name, type){
+  const url = URL.createObjectURL(new Blob([text], {type}));
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+const checks = {};   // 'merge' | 'file' → {v, renames}
+function renderCheck(slot, v, renames){
+  const el = $(slot==='merge' ? 'checkMerge' : 'checkFile');
+  if(!v){ el.innerHTML = ''; delete checks[slot]; return; }
+  checks[slot] = {v, renames};
+  const nRen = v.rows.filter(r=>r.status!=='missing' && r.to!==r.from).length;
+  el.innerHTML = (v.ok
+    ? `<div class="chk pass"><b>✓ Design check passed.</b> All ${v.counts.nFloor} floors and ${v.counts.nDet} detectors in ${esc(v.merged.name)} are identical to the originals${nRen ? `, apart from ${nRen} name change${nRen===1?'':'s'}` : ''}.</div>`
+    : `<div class="chk fail"><b>✗ Design check failed.</b> ${v.problems.length} problem${v.problems.length===1?'':'s'}:<ul>${v.problems.slice(0,6).map(p=>`<li>${esc(p)}</li>`).join('')}${v.problems.length>6 ? `<li>…and ${v.problems.length-6} more in the report.</li>` : ''}</ul></div>`)
+    + `<div class="row"><button class="pbtn" type="button" data-rep="view" data-slot="${slot}">Show report</button>
+       <button class="pbtn" type="button" data-rep="print" data-slot="${slot}">Print report</button>
+       <button class="pbtn" type="button" data-rep="save" data-slot="${slot}">Save report (.html)</button></div>
+       <div class="repBox" hidden></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-rep]'); if(!b) return;
+  const c = checks[b.dataset.slot]; if(!c) return;
+  const html = reportHTML(c.v, c.renames);
+  if(b.dataset.rep==='view'){
+    const box = b.closest('.row').nextElementSibling;
+    box.hidden = !box.hidden; if(!box.hidden) box.innerHTML = html;
+    b.textContent = box.hidden ? 'Show report' : 'Hide report';
+  } else if(b.dataset.rep==='print'){
+    $('printArea').innerHTML = html; window.print();
+  } else {
+    const doc = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Difference report · ${esc(c.v.merged.name)}</title><style>body{margin:24px;background:#fff}\n${repCSS()}</style></head><body>${html}</body></html>\n`;
+    saveBlob(doc, `${stemOf(c.v.merged.name)}-difference-report.html`, 'text/html');
+  }
 });
 
 
