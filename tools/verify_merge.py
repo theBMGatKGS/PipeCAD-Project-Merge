@@ -3,7 +3,7 @@
 Usage:  python3 tools/verify_merge.py merged.pl source1.pl source2.pl ...   (sources in the order they were merged)
 
 Compares every header block, floor and saved result in the merged file with its source, field by field, after
-undoing the per-file ID / layerTag offset. Prints any difference other than renamed floors and detectors, checks
+undoing the per-file ID / layerTag offset. Prints any difference other than renamed floors, detectors and pipe runs, checks
 that all IDs are unique, and that every results reference points at the same kind of object as in the source.
 "PROBLEMS 0" means the design and saved results are unchanged.
 """
@@ -27,7 +27,7 @@ def same(a,b,doff,toff,where):
         if a.tag=='layerTag' and tb not in('','0'): v=int(tb); tb=str(v+toff if v>0 else v-toff)
         elif id(b) in ISID and not (b.tag=='int' and tb=='0'): tb=str(int(tb)+doff)
         if ta!=tb:
-            if a.tag=='name' and where.split('/')[-1] in('Floor','Detector'): renames.append((where.split('/')[-1],tb,ta))
+            if a.tag=='name' and where.split('/')[-1] in('Floor','Detector','Piperun'): renames.append((where.split('/')[-1],tb,ta))
             else: problems.append(f'{where}/{a.tag}: {tb!r} -> {ta!r}')
     for ca,cb in zip(a,b): same(ca,cb,doff,toff,where+'/'+a.tag)
 ISID=set()
