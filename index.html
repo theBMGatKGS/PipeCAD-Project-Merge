@@ -378,6 +378,170 @@ function mergePipeCAD(files, overrides = new Map()){
   return {xml, errors, warns, notes, renames, tree};
 }
 
+/* ---------- Design checksums ----------
+   A fingerprint is a SHA-256 of one design with only the things a merge may change left out: floor, detector and
+   pipe-run names, internal IDs and project-tree tags. IDs and tags are renumbered in order of appearance, so a merge
+   that shifts them uniformly leaves the fingerprint equal; a stricter check below confirms the shift really is one
+   constant per file. Everything else is included as written: coordinates, pipes, holes, end caps, T-pieces, outlines,
+   labels, detector settings, and the saved PipeCAD results that belong to the detector. */
+function sha256(str){
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str), len = bytes.length, n = ((len + 9 + 63) >> 6) << 6;
+  const m = new Uint8Array(n); m.set(bytes); m[len] = 0x80;
+  const dv = new DataView(m.buffer); dv.setUint32(n - 4, len * 8 >>> 0); dv.setUint32(n - 8, Math.floor(len / 0x20000000));
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19], W = new Uint32Array(64);
+  const r = (x, k) => (x >>> k) | (x << (32 - k));
+  for(let o = 0; o < n; o += 64){
+    for(let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);
+    for(let i = 16; i < 64; i++) W[i] = (W[i-16] + (r(W[i-15],7) ^ r(W[i-15],18) ^ (W[i-15] >>> 3)) + W[i-7] + (r(W[i-2],17) ^ r(W[i-2],19) ^ (W[i-2] >>> 10))) | 0;
+    let [a,b,c,d,e,f,g,h] = H;
+    for(let i = 0; i < 64; i++){
+      const t1 = (h + (r(e,6) ^ r(e,11) ^ r(e,25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      const t2 = ((r(a,2) ^ r(a,13) ^ r(a,22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0]=(H[0]+a)|0; H[1]=(H[1]+b)|0; H[2]=(H[2]+c)|0; H[3]=(H[3]+d)|0; H[4]=(H[4]+e)|0; H[5]=(H[5]+f)|0; H[6]=(H[6]+g)|0; H[7]=(H[7]+h)|0;
+  }
+  return H.map(x=>(x >>> 0).toString(16).padStart(8,'0')).join('');
+}
+
+const NAMED = new Set(['Floor','Detector','Piperun']);   // their own <name> may change in a merge
+/* One design as path=value lines. ctx renumbers IDs and tree tags in order of appearance and keeps the raw ID
+   values, so the uniform-shift check can compare them pair by pair. */
+function designLines(el, ctx, skip = new Set(), path = el.localName, out = []){
+  const attrs = Array.from(el.attributes).filter(a=>!/^xmlns(:|$)/.test(a.name)).map(a=>`${a.name}=${a.value}`).sort();
+  if(attrs.length) out.push(`${path}@${attrs.join(',')}`);
+  if(!el.children.length){
+    let v = el.textContent.trim();
+    if(isIdEl(el) && !(v==='0' && el.localName==='int')){
+      if(!ctx.ids.has(v)) ctx.ids.set(v, ctx.ids.size + 1);
+      ctx.raw.push(Number(v)); v = '#' + ctx.ids.get(v);
+    } else if(el.localName==='layerTag' && /^-?\d+$/.test(v) && v!=='0'){
+      const a = String(Math.abs(+v)); if(!ctx.tags.has(a)) ctx.tags.set(a, ctx.tags.size + 1);
+      v = (+v < 0 ? '-t' : 't') + ctx.tags.get(a);
+    }
+    out.push(`${path}=${v}`);
+    return out;
+  }
+  const seen = {};
+  for(const c of el.children){
+    const t = c.localName, i = seen[t] = (seen[t] || 0) + 1;
+    if(skip.has(t) || (t==='name' && NAMED.has(el.localName))) continue;
+    designLines(c, ctx, skip, `${path}/${t}[${i}]`, out);
+  }
+  return out;
+}
+const newCtx = () => ({ids: new Map(), tags: new Map(), raw: []});
+
+/* Every floor and detector design in a .pl text, with fingerprints. A detector's design includes the saved
+   results whose detectorId is its own id. */
+const HEADER_TAGS = ['properties','unit','snapGrid','pipeType','options'];
+function designsOf(name, text){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error(name+' is not valid XML');
+  const root = doc.documentElement;
+  const saved = new Map();
+  kids(kid(root,'resultsDatabase'),'SavedDatabase').forEach(sd=>{ const k = ktxt(sd,'detectorId'); if(!saved.has(k)) saved.set(k, []); saved.get(k).push(sd); });
+  const used = new Set();
+  const count = (el, tag) => el.getElementsByTagName(tag).length;
+  const floors = kids(kid(root,'floorDatabase'),'Floor').map(fl=>{
+    const fctx = newCtx(), flines = designLines(fl, fctx, new Set(['detectorDatabase']));
+    const dets = kids(kid(fl,'detectorDatabase'),'Detector').map(d=>{
+      const ctx = newCtx(), lines = designLines(d, ctx), id = ktxt(d,'id');
+      const res = saved.get(id) || []; used.add(id);
+      res.forEach((sd, i)=>designLines(sd, ctx, new Set(), `results[${i+1}]`, lines));
+      const holes = Array.from(d.getElementsByTagName('Hole'));
+      return {name: ktxt(d,'name'), fp: sha256(lines.join('\n')), lines, raw: ctx.raw,
+        runs: kids(kid(d,'piperunDatabase'),'Piperun').map(p=>ktxt(p,'name')),
+        pipes: count(d,'Pipe'), holes: holes.filter(h=>h.getAttribute('xsi:type')!=='Endcap').length,
+        endcaps: holes.filter(h=>h.getAttribute('xsi:type')==='Endcap').length, results: res.length};
+    });
+    return {name: ktxt(fl,'name'), fp: sha256(flines.join('\n')), lines: flines, raw: fctx.raw, dets};
+  });
+  const orphans = [...saved.keys()].filter(k=>!used.has(k)).reduce((n,k)=>n+saved.get(k).length, 0);
+  const header = {};
+  HEADER_TAGS.forEach(t=>{ const e = kid(root,t); header[t] = e ? sha256(designLines(e, newCtx()).join('\n')) : ''; });
+  return {name, floors, orphans, header, version: ktxt(root,'pipecadVersion')};
+}
+
+/* First few lines where two designs differ, for the report. */
+function diffLines(a, b, max = 5){
+  const out = [], n = Math.max(a.length, b.length);
+  for(let i = 0; i < n && out.length < max; i++) if(a[i]!==b[i]) out.push({was: a[i] ?? '(none)', now: b[i] ?? '(none)'});
+  return out;
+}
+
+/* Check a merged .pl against its source files. Every source floor and detector is looked for in the merged file:
+   first at its expected place (sources in order, floors and detectors in order), then anywhere with the same
+   fingerprint. Status per design: identical, moved (identical but somewhere else), changed, or missing. For each
+   source file the raw IDs must have shifted by one constant, and the merged file may contain nothing extra. */
+function verifyMerge(mergedName, mergedText, sources){
+  const out = designsOf(mergedName, mergedText), src = sources.map(s=>designsOf(s.name, s.text));
+  const mFloors = out.floors.map(f=>({...f, taken:false, dets: f.dets.map(d=>({...d, taken:false}))}));
+  const mDets = mFloors.flatMap(f=>f.dets.map(d=>Object.assign(d, {home: f})));
+  const rows = [], problems = [];
+  const shiftOf = (a, b) => { if(a.length!==b.length) return null; const s = new Set(a.map((v,i)=>b[i]-v)); return s.size<=1 ? (s.size ? [...s][0] : 0) : null; };
+  // Each source file was shifted by its own constant. Identical designs can appear in two sources (two revisions
+  // of one project), so first work out which shift belongs to which source: every fingerprint match votes for
+  // the shift it implies, and the strongest votes are assigned first, one shift per source.
+  const votes = [];
+  src.forEach((s, si)=>s.floors.forEach(sf=>{
+    mFloors.filter(f=>f.fp===sf.fp).forEach(f=>{ const v = shiftOf(sf.raw, f.raw); if(v!=null && sf.raw.length) votes.push([si, v]); });
+    sf.dets.forEach(sd=>mDets.filter(d=>d.fp===sd.fp).forEach(d=>{ const v = shiftOf(sd.raw, d.raw); if(v!=null) votes.push([si, v]); }));
+  }));
+  const tally = new Map(); votes.forEach(([si, v])=>{ const k = si+'|'+v; tally.set(k, (tally.get(k)||0) + 1); });
+  const want = new Map(), claimed = new Set();
+  [...tally].sort((a,b)=>b[1]-a[1]).forEach(([k])=>{ const [si, v] = k.split('|').map(Number); if(!want.has(si) && !claimed.has(v)){ want.set(si, v); claimed.add(v); } });
+  // Look for a design at its expected place first, then anywhere: same fingerprint and this source's shift,
+  // then same fingerprint only. Anything else is changed (if something sits at the expected place) or missing.
+  const find = (item, expected, pool, si) => {
+    const fits = c => c && !c.taken && c.fp===item.fp;
+    const shifted = c => !want.has(si) || shiftOf(item.raw, c.raw)===want.get(si) || !item.raw.length;
+    if(fits(expected) && shifted(expected)) return [expected, 'identical'];
+    const alt = pool.find(c=>fits(c) && shifted(c)) || pool.find(fits);
+    if(alt) return [alt, alt===expected ? 'identical' : 'moved'];
+    return expected && !expected.taken ? [expected, 'changed'] : [null, 'missing'];
+  };
+  let p = 0;
+  src.forEach((s, si)=>{
+    const shifts = new Set();
+    s.floors.forEach(sf=>{
+      const [mf, how] = find(sf, mFloors[p], mFloors, si);
+      if(mf){ mf.taken = true; p = mFloors.indexOf(mf) + 1; }
+      const fsh = mf && how!=='changed' ? shiftOf(sf.raw, mf.raw) : null;
+      if(fsh!=null && sf.raw.length) shifts.add(fsh);
+      rows.push({file: s.name, kind:'Floor', from: sf.name, to: mf?.name ?? '', floor: mf?.name ?? '', status: how,
+        fpSrc: sf.fp, fpOut: mf?.fp ?? '', diff: how==='changed' ? diffLines(sf.lines, mf.lines) : [], info: `${sf.dets.length} detector${sf.dets.length===1?'':'s'}`});
+      let q = 0;
+      sf.dets.forEach(sd=>{
+        const pool = mf ? mf.dets : [];
+        let [md, dhow] = find(sd, pool[q], [...pool, ...mDets], si);
+        if(md){ md.taken = true; if(md.home===mf) q = pool.indexOf(md) + 1; else if(dhow==='identical') dhow = 'moved'; }
+        const sh = md && dhow!=='changed' ? shiftOf(sd.raw, md.raw) : null;
+        if(sh!=null) shifts.add(sh); else if(md) dhow = 'changed';
+        rows.push({file: s.name, kind:'Detector', from: sd.name, to: md?.name ?? '', floor: md ? md.home.name : '', status: dhow,
+          fpSrc: sd.fp, fpOut: md?.fp ?? '', diff: dhow==='changed' && md ? diffLines(sd.lines, md.lines) : [],
+          info: `${sd.runs.length} pipe runs, ${sd.pipes} pipes, ${sd.holes} holes, ${sd.endcaps} end caps, ${sd.results} saved result${sd.results===1?'':'s'}`,
+          runs: sd.runs, runsOut: md?.runs ?? []});
+      });
+    });
+    if(shifts.size>1) problems.push(`${s.name}: internal IDs did not shift by one constant amount (${[...shifts].join(', ')}). Saved results may point at the wrong pipe or hole.`);
+    s.shift = shifts.size===1 ? [...shifts][0] : null;
+  });
+  mFloors.filter(f=>!f.taken).forEach(f=>problems.push(`The merged file has a floor “${f.name}” that is not in any source file.`));
+  mDets.filter(d=>!d.taken).forEach(d=>problems.push(`The merged file has a detector “${d.name}” on “${d.home.name}” that is not in any source file.`));
+  const srcOrph = src.reduce((n,s)=>n+s.orphans, 0);
+  if(out.orphans!==srcOrph) problems.push(`Saved results not attached to any detector: ${srcOrph} in the sources, ${out.orphans} in the merged file.`);
+  const headerFrom = src.find(s=>HEADER_TAGS.every(t=>out.header[t]===s.header[t]));
+  if(!headerFrom && src.length) problems.push(`Project settings (${HEADER_TAGS.filter(t=>out.header[t]!==src[0].header[t]).join(', ')}) do not match any source file.`);
+  rows.forEach(r=>{ if(r.status==='changed' || r.status==='missing') problems.push(`${r.file}: ${r.kind.toLowerCase()} “${r.from}” is ${r.status==='missing' ? 'missing from the merged file' : 'not identical in the merged file'}.`); });
+  const nDet = rows.filter(r=>r.kind==='Detector').length, okDet = rows.filter(r=>r.kind==='Detector' && (r.status==='identical' || r.status==='moved')).length;
+  return {ok: !problems.length, problems, rows, headerFrom: headerFrom?.name ?? '',
+    merged: {name: mergedName, version: out.version, floors: out.floors.length, dets: mDets.length},
+    sources: src.map(s=>({name: s.name, version: s.version, floors: s.floors.length, dets: s.floors.reduce((n,f)=>n+f.dets.length,0), shift: s.shift})),
+    counts: {nDet, okDet, nFloor: rows.length - nDet}};
+}
+
 /* ---------- UI ---------- */
 let files = [], merged = null;
 const overrides = new Map(); // user-edited clash names, keyed file|Floor/Detector|original name
