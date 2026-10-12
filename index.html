@@ -256,7 +256,7 @@ code{white-space:nowrap;background:var(--soft);border:1px solid var(--line2);bor
         <li><b>Pipe runs</b> are locked unless you set a pipe naming convention. Exhaust runs always keep <code>Exhaust</code> first: a prefix goes after it, so <code>Exhaust Pipe</code> with prefix <code>{detector} </code> becomes <code>Exhaust MASD 01 Pipe</code>.</li>
         <li><b>Naming conventions.</b> Choose <b>One convention for the whole project</b> or <b>A convention for each file</b>. For floors, detectors and pipe runs, pick <b>Prefix / suffix</b> (text added before and after each name) or <b>Find &amp; replace</b> (every occurrence of some text replaced, case-sensitive). Prefix, suffix and replacement can use <code>{file}</code> (the file name without <code>.pl</code>), <code>{floor}</code> and <code>{detector}</code>. <b>Match pipe names to detector</b> sets the pipe prefix to <code>{detector} </code>. A convention is applied first; a floor that then clashes with an earlier file still gets a copy number.</li>
         <li><b>Typing a name.</b> Every changed floor and detector is listed with the reason, and you can type a different name. A floor name must not match another floor; a detector name must not match another detector on the same floor.</li>
-        <li><b>Length limits.</b> PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. Copy numbers shorten a long floor name to fit; a convention or typed name that is too long is refused with a message. Original names are never shortened.</li>
+        <li><b>Length limits.</b> PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. When a copy number or numbering would pass the limit, the name is cut and ends in <code>...(n)</code>, n being the copy number: <code>Boyers Roadway 2 x Pipes/MASD → Boyers Roadway 2 x Pipes/M...(2)</code>. A prefix, suffix, replacement or typed name that is too long is refused with a message instead. Original names are never shortened.</li>
       </ul>
 
       <h3 id="help-check">Design check and difference report</h3>
@@ -355,24 +355,25 @@ const NAME_MAX = {Floor: 32, Detector: 32, Piperun: 32};
 const WHAT = {Floor:'floor', Detector:'detector', Piperun:'pipe run'};
 
 /* A floor whose name is already used by an earlier file gets the next free copy number:
-   "Area A" → "Area A (2)", and "Area A (2)" → "Area A (3)". The description is cut if needed to stay within the limit. */
+   "Area A" → "Area A (2)", and "Area A (2)" → "Area A (3)". If that would pass the length limit, the name is cut
+   and ends in "...(n)": "Boyers Roadway 2 x Pipes/MASD" → "Boyers Roadway 2 x Pipes/M...(2)" (32 characters). */
+const cutTo = (base, tail, max) => base.length + tail.length <= max ? null : base.slice(0, Math.max(1, max - 3 - tail.trim().length)).trimEnd() + '...' + tail.trim();
 function copyName(name, used, max = NAME_MAX.Floor){
-  const m = name.match(/^(.*) \((\d+)\)$/), base = m ? m[1] : name;
-  for(let i = m ? +m[2] + 1 : 2; ; i++){
-    const tail = ` (${i})`, c = base.slice(0, Math.max(1, max - tail.length)).trimEnd() + tail;
+  const m = name.match(/^(.*?)( |\.\.\.)\((\d+)\)$/), base = m ? m[1] : name, cut = m?.[2]==='...';
+  for(let i = m ? +m[3] + 1 : 2; ; i++){
+    const tail = ` (${i})`, c = cutTo(cut ? base + '...' : base, tail, max) ?? (cut ? `${base}...(${i})` : base + tail);
     if(!used.has(c)) return c;
   }
 }
 /* The next free detector name in the original's own pattern: a trailing number continues at the same width
-   ("MASD 01" → "MASD 02", "MASD 1-2" → "MASD 1-3"); a name with no number gets one ("Detector" → "Detector 2"). */
+   ("MASD 01" → "MASD 02", "MASD 1-2" → "MASD 1-3"); a name with no number gets one ("Detector" → "Detector 2").
+   A name too long for that is cut and ends in "...(n)", n being the copy number. */
 function nextName(name, used, max = NAME_MAX.Detector){
-  const fit = c => c.length <= max ? c : null;
-  let m;
+  const m = name.match(/^(.*?)(\d+)$/);
   for(let i = 0; i < 100000; i++){
-    let c;
-    if((m = name.match(/^(.*?)(\d+)$/))){ const n = String(+m[2]+1+i).padStart(m[2].length,'0'); c = m[1].slice(0, max - n.length) + n; }
-    else { const n = ` ${i+2}`; c = name.slice(0, max - n.length).trimEnd() + n; }
-    if(fit(c) && !used.has(c)) return c;
+    const c = m ? m[1] + String(+m[2]+1+i).padStart(m[2].length,'0') : `${name} ${i+2}`;
+    const fit = c.length <= max ? c : cutTo(name, `(${i+2})`, max);
+    if(!used.has(fit)) return fit;
   }
   return name;
 }

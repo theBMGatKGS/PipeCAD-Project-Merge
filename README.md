@@ -59,7 +59,7 @@ Each step on the page has a link to the matching Help section. The Quick Start p
   - **Pipe runs** are locked unless the user sets a pipe naming convention. Exhaust runs always keep `Exhaust` first.
   - **Naming conventions:** one for the whole project, or one per file. For floors, detectors and pipe runs, choose **Prefix / suffix** or **Find & replace** (case-sensitive). Prefix, suffix and replacement can use `{file}`, `{floor}` and `{detector}`. **Match pipe names to detector** sets the pipe prefix to `{detector} `.
   - **Typed names:** any changed floor or detector name can be overtyped. A floor name must not match another floor, and a detector name must not match another detector on its floor.
-  - **Length limit:** PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. Copy numbers shorten a long floor name to fit; an over-long convention or typed name is refused.
+  - **Length limit:** PipeCAD allows at most 32 characters, spaces included, for floor, detector and pipe-run names, and new names are held to that. When a copy number or numbering would pass the limit, the name is cut and ends in `...(n)`, n being the copy number (`Boyers Roadway 2 x Pipes/MASD → Boyers Roadway 2 x Pipes/M...(2)`). An over-long convention or typed name is refused.
 - **Refused:** files in different units, or with a different pipe bore or material, because their airflow results would change.
 - **Flagged:** a different stick length, OD or part number. PipeCAD keeps one pipe type per project, so socket counts and part numbers follow the first file's pipe if PipeCAD recalculates.
 - **Version.** The merged file is marked with the newest PipeCAD version among the inputs.
