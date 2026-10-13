@@ -1,6 +1,6 @@
 # PipeCAD Project Merge
 
-ModuLaser Tools · **v00.01.000** (2026-10-12)
+ModuLaser Tools · **v00.01.001** (2026-10-12)
 
 Combines several PipeCAD `.pl` project files into one `.pl` that opens in PipeCAD with the design unchanged, then proves it: every floor and detector is fingerprinted and compared with the originals, and the difference report can be printed or saved.
 For example, separate files for each floor or building can be merged into one project.
@@ -15,10 +15,10 @@ It is an installable, offline-capable web app (PWA). Everything runs in the brow
 
 ## Quick Start
 1. Open the app and click **Choose .pl files**, or drop PipeCAD project files on the box. Add two or more.
-2. **Order** the files with ↑ and ↓. The first file (marked **header**) supplies the project details, units and pipe type.
+2. **Order** the files by dragging the rows (or ↑ and ↓). The first file (pinned as **header**) supplies the project details, units and pipe type.
 3. **Names.** A floor whose name is already used by an earlier file gets a copy number (`Area A (2)`). Detectors and pipe runs keep their names. Decide whether to leave or number any repeated detector names, and set a naming convention if you want one. Every change is listed, and you can type a different name.
-4. **Review and download.** Set the file name and click **Download merged .pl**.
-5. **Design check.** Read the result, then **Print report** (or save as PDF), **Save report (.html)** or **Save table (.csv)**.
+4. **Review and download.** Set the file name in the side panel and click **Download merged .pl**. If it is disabled, the panel says why, and each message jumps to the item to fix.
+5. **Design check.** Read the PASS/FAIL strip, then **Print** (or save as PDF), **Save .html** or **Save .csv**.
 6. Open the file in PipeCAD and **verify** every design against the original drawings (see the disclaimer above).
 
 The original files are never changed.
@@ -122,5 +122,6 @@ Validated on six real PipeCAD 3.5.0.132 / 3.6.2.139 projects (49 detectors, 17 f
 
 ## Versions
 `vMM.mm.rrr`. Releases are tagged by hand in GitHub.
+- **00.01.001** (2026-10-12): redesign; merge logic and output unchanged. Dark on-screen UI with a sticky step bar and per-step status; drag-to-reorder files with the first file pinned as header; one rename table with Leave all / Number all; side panel with file name, Download (with the reason when disabled) and grouped must-fix / review messages that jump to their item; PASS/FAIL strip with Print / Save .html / Save .csv; printed and saved difference report in the KGS palette with summary tiles.
 - **00.01.000** (2026-10-12): design check with SHA-256 fingerprints, ID-shift and file checksums; difference report (print/PDF, HTML, CSV); check for existing merged files; copy-number floor names (`Area A (2)`); detectors unique per floor; repeated names flagged to leave or number; prefix/suffix and find & replace naming conventions for floors, detectors and pipe runs, project-wide or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit; Help and Quick Start updated.
 - **00.00.001** (2026-10-09): first release. Merge, rename review and edit, pipe/unit checks, Quick Start and Help, the experimental-tool disclaimer, PWA install and offline use.
