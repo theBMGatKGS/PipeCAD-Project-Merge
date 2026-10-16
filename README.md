@@ -1,5 +1,8 @@
 # PipeCAD Project Merge
 
+![PipeCAD Project Merge PWA in its dark theme: empty start screen with the five-step bar, Quick Start and the add-files drop zone](docs/screenshot.png)
+
+
 ModuLaser Tools · **v00.01.001** (2026-10-12)
 
 Combines several PipeCAD `.pl` project files into one `.pl` that opens in PipeCAD with the design unchanged, then proves it: every floor and detector is fingerprinted and compared with the originals, and the difference report can be printed or saved.
