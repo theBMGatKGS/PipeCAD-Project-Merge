@@ -1,6 +1,6 @@
 // PipeCAD Project Merge — service worker
 // Bump CACHE_NAME whenever the app shell changes so installed copies pick up the update.
-const CACHE_NAME = 'pipecad-merge-00-01-001';
+const CACHE_NAME = 'pipecad-merge-00-01-002';
 const SHELL = [
   './',
   './index.html',

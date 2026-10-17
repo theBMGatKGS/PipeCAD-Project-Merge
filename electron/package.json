@@ -1,8 +1,8 @@
 {
   "name": "pipecad-project-merge",
   "productName": "PipeCAD Project Merge",
-  "version": "0.1.1",
-  "appRevision": "00.01.001",
+  "version": "0.1.2",
+  "appRevision": "00.01.002",
   "description": "Combine several PipeCAD .pl project files into one, with the design unchanged.",
   "author": "Brent",
   "private": true,

@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!--
   PipeCAD Project Merge — combines PipeCAD .pl project files. Installable, offline-capable web app (PWA).
-  Version 00.01.001 (2026-10-12). Everything runs in this browser; no file is uploaded anywhere.
+  Version 00.01.002 (2026-10-16). Everything runs in this browser; no file is uploaded anywhere.
 -->
 <style>
 /* On screen: "Underground" dark mode. Print and saved reports: KGS palette (see .rep and @media print). */
@@ -239,7 +239,7 @@ code{white-space:nowrap;background:var(--surface2);border:1px solid var(--line);
 <body>
 <div class="top">
 <div class="bar"><div class="bar-in">
-  <h1>PipeCAD Project Merge<span class="ver">v00.01.001</span> <small>Combine several PipeCAD project files into one, unchanged · 2026-10-12</small></h1>
+  <h1>PipeCAD Project Merge<span class="ver">v00.01.002</span> <small>Combine several PipeCAD project files into one, unchanged · 2026-10-16</small></h1>
   <div class="btns">
     <button class="btn" type="button" data-help="quick-start">Quick Start</button>
     <button class="btn" type="button" data-help="">Help</button>
@@ -288,7 +288,7 @@ code{white-space:nowrap;background:var(--surface2);border:1px solid var(--line);
 
   <section class="card" id="namesCard" hidden>
     <h2><span class="k">3</span> Names <button class="hl" type="button" data-help="names">Naming rules</button></h2>
-    <p class="note" style="margin-top:0">Designs keep their own names unless something must change. A floor whose name is already used by an earlier file gets a copy number, such as <code>Area A (2)</code>. Detectors only need unique names on their own floor, and pipe runs stay locked. To rename on purpose, set a naming convention.</p>
+    <p class="note" style="margin-top:0">Designs keep their own names unless something must change. A floor whose name is already used by an earlier file gets a copy number, such as <code>Area A (2)</code>. A detector whose name an earlier file already uses also gets a copy number, such as <code>Detector 2</code>; pipe runs stay locked. To rename on purpose, set a naming convention.</p>
     <div class="row" role="radiogroup" aria-label="Naming convention scope">
       <label class="opt"><input type="radio" name="convScope" value="project" checked> One convention for the whole project</label>
       <label class="opt"><input type="radio" name="convScope" value="file"> A convention for each file</label>
@@ -429,7 +429,8 @@ code{white-space:nowrap;background:var(--surface2);border:1px solid var(--line);
       <p><b>PipeCAD Project Merge is an experimental tool</b>, provided as is, without warranty of any kind. It is not affiliated with or endorsed by the publisher of PipeCAD. Before a merged file is used for design, submittal, quotation, installation or commissioning, the user must open it in PipeCAD and verify that every design has been properly preserved according to the intended performance and coverage of the original drawings: floors, detectors, pipe networks, sampling holes, alarm settings and calculated results. <b>The user assumes all risks</b> arising from the use of this tool and of any file it produces. The original files are never changed. Keep them as the reference.</p>
 
       <h3 id="help-revisions">Revision log</h3>
-      <dl class="faq"><dt>00.01.001 · 2026-10-12</dt><dd>Redesign, merge unchanged. Dark on-screen layout with a sticky step bar showing each step's status; drag rows to reorder files, with the first file pinned as the header; one rename table with <b>Leave all</b> / <b>Number all</b> for repeated names; a side panel with the file name, <b>Download</b> (and why it is disabled) and the messages to fix or review, each jumping to its item; a PASS/FAIL strip with Print, Save .html and Save .csv. The printed and saved difference report uses the KGS palette with summary tiles.</dd>
+      <dl class="faq"><dt>00.01.002 · 2026-10-16</dt><dd>Per Brent: duplicate detector names across files are renamed on merge — a detector whose name an earlier file already uses gets a copy number (e.g. two “Detector” → “Detector” and “Detector 2”), shown in the rename table and editable. Merge otherwise unchanged.</dd>
+      <dt>00.01.001 · 2026-10-12</dt><dd>Redesign, merge unchanged. Dark on-screen layout with a sticky step bar showing each step's status; drag rows to reorder files, with the first file pinned as the header; one rename table with <b>Leave all</b> / <b>Number all</b> for repeated names; a side panel with the file name, <b>Download</b> (and why it is disabled) and the messages to fix or review, each jumping to its item; a PASS/FAIL strip with Print, Save .html and Save .csv. The printed and saved difference report uses the KGS palette with summary tiles.</dd>
       <dt>00.01.000 · 2026-10-12</dt><dd>Design check: every floor and detector is fingerprinted (SHA-256) and compared with the originals after each merge, with ID shifts and file checksums. Difference report to show, print or save as PDF, HTML or CSV, and a check for existing merged files. Naming: floors that are already used get copy numbers (<code>Area A (2)</code>); detectors only need unique names on their floor; repeated names are flagged to leave or number; naming conventions (prefix/suffix or find &amp; replace) for floors, detectors and pipe runs, for the whole project or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit. Help and Quick Start updated.</dd>
       <dt>00.00.001 · 2026-10-09</dt><dd>First release. Merges PipeCAD .pl projects with IDs and saved-results links preserved, renames clashes following the original names (editable), checks units and pipe type, and writes PipeCAD-style output. Includes Quick Start, Help, the experimental-tool disclaimer, offline use and app install.</dd></dl>
     </div>
@@ -516,7 +517,7 @@ const isIdEl = e => !e.children.length && (e.localName==='id' || e.localName==='
 /* Names in the merged file, in this order:
    1. Floors: the file's naming convention, then a copy number when an earlier file already uses the name
       (one original name maps to one new name within a file), then any name the user typed.
-   2. Detectors only need to be unique on their own floor, so they change only by convention or by the user.
+   2. Detectors change by convention, by the user, or (00.01.002) get a copy number when an earlier file already uses the name.
    3. Names repeated on one floor (or floors repeated in one file) are flagged; the user leaves them or numbers them.
    4. Pipe runs are locked unless a convention is set for them; exhaust runs keep "Exhaust" first.
    Every new name must fit its length limit and not clash with a name the user didn't choose to repeat. */
@@ -556,13 +557,20 @@ function nameDesigns(floors, srcOf, {overrides, ruleFor, dupChoice, errors, rena
     if(info.some(y=>y!==x && y.nn===x.nn)) errors.push(`“${x.nn}” is already used by another floor, so ${x.file}'s floor “${x.orig}” can't take that name.`); });
   info.forEach(x=>{ setName(x.fl, x.nn); record('Floor', x.file, x.orig, x.nn, x.auto, x.why, x.key, x.nn); });
 
-  // 2. detectors, per floor
+  // 2. detectors, per floor; a detector whose name an earlier file already uses gets a copy number ("Detector" → "Detector 2")
+  const earlierDet = new Set(); let curDetFile = null, ownDet = new Set();
   info.forEach(x=>{
+    if(x.file!==curDetFile){ ownDet.forEach(n=>earlierDet.add(n)); ownDet = new Set(); curDetFile = x.file; }
     const dets = kids(kid(x.fl,'detectorDatabase'),'Detector').map((d, j)=>{
       const orig = nameEl(d)?.textContent ?? '';
       let nn = applyRule(ruleFor(x.file,'Detector'), orig, {file: stemOf(x.file), floor: x.nn, detector: orig}), why = nn!==orig ? 'convention' : '';
+      if(earlierDet.has(nn)){
+        const used = new Set([...earlierDet, ...ownDet, ...kids(kid(x.fl,'detectorDatabase'),'Detector').map(e=>nameEl(e)?.textContent ?? '')]);
+        nn = nextName(nn, used); why = why ? 'convention + copy number' : 'copy number';
+      }
       const key = `${x.file}|Detector|${x.k}|${j}`, auto = nn, want = (overrides.get(key) || '').trim();
       if(want && want!==auto){ nn = want; why = 'typed'; }
+      ownDet.add(nn);
       return {d, j, orig, nn, auto, why, key};
     });
     const groups = new Map(); dets.forEach(y=>{ if(!groups.has(y.nn)) groups.set(y.nn, []); groups.get(y.nn).push(y); });
@@ -1082,7 +1090,7 @@ $('vFile').addEventListener('change', async e=>{
 });
 
 /* ---------- Design check and difference report ---------- */
-const APP_VERSION = '00.01.001';
+const APP_VERSION = '00.01.002';
 const STATUS = {identical:'✓ Identical', moved:'✓ Identical (moved)', changed:'✗ Changed', missing:'✗ Missing'};
 const shortFp = h => h ? h.slice(0,16) : '—';
 const stamp = () => { const d = new Date(), z = n => String(n).padStart(2,'0');

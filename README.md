@@ -1,6 +1,6 @@
 # PipeCAD Project Merge
 
-ModuLaser Tools · **v00.01.001** (2026-10-12)
+ModuLaser Tools · **v00.01.002** (2026-10-16)
 
 Combines several PipeCAD `.pl` project files into one `.pl` that opens in PipeCAD with the design unchanged, then proves it: every floor and detector is fingerprinted and compared with the originals, and the difference report can be printed or saved.
 For example, separate files for each floor or building can be merged into one project.
@@ -122,6 +122,7 @@ Validated on six real PipeCAD 3.5.0.132 / 3.6.2.139 projects (49 detectors, 17 f
 
 ## Versions
 `vMM.mm.rrr`. Releases are tagged by hand in GitHub.
+- **00.01.002** (2026-10-16, local, not yet released): per Brent, duplicate detector names across files are renamed on merge — a detector whose name an earlier file already uses gets a copy number (two “Detector” → “Detector” and “Detector 2”), listed in the rename table and editable. New test `tools/test_dup_detector.py`.
 - **00.01.001** (2026-10-12): redesign; merge logic and output unchanged. Dark on-screen UI with a sticky step bar and per-step status; drag-to-reorder files with the first file pinned as header; one rename table with Leave all / Number all; side panel with file name, Download (with the reason when disabled) and grouped must-fix / review messages that jump to their item; PASS/FAIL strip with Print / Save .html / Save .csv; printed and saved difference report in the KGS palette with summary tiles.
 - **00.01.000** (2026-10-12): design check with SHA-256 fingerprints, ID-shift and file checksums; difference report (print/PDF, HTML, CSV); check for existing merged files; copy-number floor names (`Area A (2)`); detectors unique per floor; repeated names flagged to leave or number; prefix/suffix and find & replace naming conventions for floors, detectors and pipe runs, project-wide or per file; exhaust runs keep “Exhaust” first; new names held to PipeCAD's 32-character limit; Help and Quick Start updated.
 - **00.00.001** (2026-10-09): first release. Merge, rename review and edit, pipe/unit checks, Quick Start and Help, the experimental-tool disclaimer, PWA install and offline use.
