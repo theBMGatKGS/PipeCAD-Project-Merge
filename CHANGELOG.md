@@ -1,8 +1,8 @@
 # Changelog
 
-## 00.01.002 (2026-10-16)
+## 00.01.002 (2026-10-16) · released 2026-10-17
 
-- **00.01.002** (2026-10-16, local, not yet released): per Brent, duplicate detector names across files are renamed on merge — a detector whose name an earlier file already uses gets a copy number (two “Detector” → “Detector” and “Detector 2”), listed in the rename table and editable. New test `tools/test_dup_detector.py`.
+- **00.01.002** (2026-10-16, released 2026-10-17; QA/Auditor GO, Delta review 5 on 3a01814): per Brent, duplicate detector names across files are renamed on merge — a detector whose name an earlier file already uses gets a copy number (two “Detector” → “Detector” and “Detector 2”), listed in the rename table and editable. New test `tools/test_dup_detector.py`.
 
 ## 00.01.001 (2026-10-12)
 Redesign. Merge logic, merged output and design check are unchanged (verified byte-for-byte against 00.01.000, `tools/verify_merge.py` PROBLEMS 0).
