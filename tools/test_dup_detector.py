@@ -7,7 +7,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.environ.get('ML_FIXTURE', '/workspace/qa/minilaser/minilaser.pl')
 tmp = os.environ.get('MLP_TEST_OUT') or tempfile.mkdtemp(prefix='pcm-dup-'); os.makedirs(tmp, exist_ok=True)   # all output here
 if len(sys.argv) < 3 and not os.path.exists(SRC):   # Brent: the Hoistway fixture stays off GitHub
-    print(f'SKIP test_dup_detector: fixture not present ({SRC}); pass two .pl files or set ML_FIXTURE. Nothing was tested.'); print('SUMMARY SKIPPED (fixture absent)'); sys.exit(0)
+    print(f'SKIP test_dup_detector: fixture not present ({SRC}); pass two .pl files or set ML_FIXTURE. Nothing was tested.'); req = os.environ.get('REQUIRE_FIXTURES') == '1'; print('SUMMARY 0 / 0, SKIPPED: all (fixture absent)' + (' — REQUIRE_FIXTURES=1, failing' if req else '')); sys.exit(1 if req else 0)
 if len(sys.argv) >= 3: A, B = sys.argv[1], sys.argv[2]
 else: A = os.path.join(tmp, 'hoistway-a.pl'); B = os.path.join(tmp, 'hoistway-b.pl'); shutil.copy(SRC, A); shutil.copy(SRC, B)
 R = []
